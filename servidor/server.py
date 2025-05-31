@@ -1,8 +1,13 @@
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from concurrent import futures
 
 import grpc
-import procesador_pb2
-import procesador_pb2_grpc
+from proto import procesador_pb2
+from proto import procesador_pb2_grpc
 
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
     def ProcesarImagen(self, request, context):
