@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
+import io
 import cv2
 import numpy as np
 
@@ -10,7 +11,12 @@ def procesar_imagen_nodo():
     data = archivo_imagen.read()
     imagen_np = np.frombuffer(data, dtype=np.uint8)
     img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
-    # TODO: Procesar la imagen para convertirlo a blanco y negro
+    
+    # Se puede realizar otro procesamiento pero por el momento solo se convierte a escala de grises
+    img_gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, buf = cv2.imencode(".png", img_gris)
+    resultado_bytes = buf.tobytes()
+
     # TODO: Devolver la imagen ya procesada al servidor
     return jsonify({"status": "la imagen fue procesada correctamente"})
 
