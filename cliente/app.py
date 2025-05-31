@@ -22,9 +22,7 @@ def procesar_imagen():
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
         response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data))
-        print(f"Respuesta del servidor: {response}")
-
-    print(f"Nombre: {archivo_imagen.filename}")
+        print(f"Respuesta del servidor: {response.status}")
     return render_template("index.html")
 
 if __name__ == "__main__":
