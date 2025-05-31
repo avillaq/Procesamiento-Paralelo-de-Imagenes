@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -8,7 +8,10 @@ def index():
 
 @app.route("/procesar", methods=["POST"])
 def procesar_imagen():
-    print("Prueba")
+    file = request.files['img']
+    data = file.read()
+    print(f"Nombre: {file.filename}")
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
