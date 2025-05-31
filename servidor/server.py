@@ -11,7 +11,7 @@ from proto import procesador_pb2_grpc
 
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
     def ProcesarImagen(self, request, context):
-        return procesador_pb2.ImagenReply("imagen procesada correctamente")
+        return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
 
 def serve():
     puerto = "50051"
