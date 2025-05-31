@@ -10,5 +10,5 @@ message ImagenRequest {
 
 message ImagenReply {
   string status = 1;
-  bytes image_data = 2;
+  bytes imagen_data = 2;
 }
