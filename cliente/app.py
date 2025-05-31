@@ -8,9 +8,9 @@ def index():
 
 @app.route("/procesar", methods=["POST"])
 def procesar_imagen():
-    file = request.files['img']
-    data = file.read()
-    print(f"Nombre: {file.filename}")
+    archivo_imagen = request.files["img"]
+    data = archivo_imagen.read()
+    print(f"Nombre: {archivo_imagen.filename}")
     return render_template("index.html")
 
 if __name__ == "__main__":
