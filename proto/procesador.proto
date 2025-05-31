@@ -1,14 +1,13 @@
 syntax = "proto3";
 
 service ProcesadorImagen {
-  rpc ProcesarImagen(ImagenRequest) returns (ImagenResponse);
+  rpc ProcesarImagen(ImagenRequest) returns (ImagenReply);
 }
 
 message ImagenRequest {
   bytes data = 1;
 }
 
-message ImagenResponse {
+message ImagenReply {
   string status = 1;
 }
-

@@ -37,7 +37,7 @@ class ProcesadorImagenStub(object):
         self.ProcesarImagen = channel.unary_unary(
                 '/ProcesadorImagen/ProcesarImagen',
                 request_serializer=proto_dot_procesador__pb2.ImagenRequest.SerializeToString,
-                response_deserializer=proto_dot_procesador__pb2.ImagenResponse.FromString,
+                response_deserializer=proto_dot_procesador__pb2.ImagenReply.FromString,
                 _registered_method=True)
 
 
@@ -56,7 +56,7 @@ def add_ProcesadorImagenServicer_to_server(servicer, server):
             'ProcesarImagen': grpc.unary_unary_rpc_method_handler(
                     servicer.ProcesarImagen,
                     request_deserializer=proto_dot_procesador__pb2.ImagenRequest.FromString,
-                    response_serializer=proto_dot_procesador__pb2.ImagenResponse.SerializeToString,
+                    response_serializer=proto_dot_procesador__pb2.ImagenReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -85,7 +85,7 @@ class ProcesadorImagen(object):
             target,
             '/ProcesadorImagen/ProcesarImagen',
             proto_dot_procesador__pb2.ImagenRequest.SerializeToString,
-            proto_dot_procesador__pb2.ImagenResponse.FromString,
+            proto_dot_procesador__pb2.ImagenReply.FromString,
             options,
             channel_credentials,
             insecure,
