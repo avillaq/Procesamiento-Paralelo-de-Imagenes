@@ -3,6 +3,7 @@ import sys
 import io
 import numpy as np
 import cv2
+import requests
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -27,7 +28,17 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             inicio = i * alto_parte
             final = (i + 1) * alto_parte if i != num_nodos - 1 else alto
             partes.append(img[inicio:final, :])
-        print(f"{partes}")
+        
+        partes_procesadas = []
+        for pt in enumerate(partes):
+            _, buf = cv2.imencode(".png", pt)
+            parte_bytes = buf.tobytes()
+            # Por el momento solo se envía la parte de la imagen a un nodo
+            response = requests.post("http://localhost:8000/procesar-nodo", files={"img": io.BytesIO(parte_bytes)})
+            if response.status_code == 200:
+                # TODO: Hacer que los nodos retorne la imagen procesada. Por el momento solo envian un mensaje.
+                print(f"- Parte procesada correctamente")
+                partes_procesadas.append(pt)
         return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
 
 def serve():
