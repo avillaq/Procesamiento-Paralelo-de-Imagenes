@@ -11,6 +11,10 @@
     <input type="file" name="img" required accept="image/*">
     <br>
     <button type="submit">Subir Imagen</button>
+
+    {% if error %}
+      <p style="color: red;">{{ error }}</p>
+    {% endif %}
   </form>
 </body>
 </html>
