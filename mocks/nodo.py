@@ -17,8 +17,11 @@ def procesar_imagen_nodo():
     _, buf = cv2.imencode(".png", img_gris)
     resultado_bytes = buf.tobytes()
 
-    # TODO: Devolver la imagen ya procesada al servidor
-    return jsonify({"status": "la imagen fue procesada correctamente"})
+    return send_file(
+        io.BytesIO(resultado_bytes),
+        mimetype="image/png",
+        as_attachment=False
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
