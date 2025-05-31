@@ -47,7 +47,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
         _, buf = cv2.imencode(".png", final)
         completo_bytes = buf.tobytes()
 
-        return procesador_pb2.ImagenReply(status="imagen procesada correctamente", imagen_data=completo_bytes)
+        return procesador_pb2.ImagenReply(status="ok", imagen_data=completo_bytes)
 
 def serve():
     puerto = "50051"
