@@ -36,12 +36,14 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             parte_bytes = buf.tobytes()
             # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
             time.sleep(1)  # pequeños retrasos para la simulacion 
-            response = requests.post("http://localhost:8000/procesar-nodo", files={"img": io.BytesIO(parte_bytes)})
-            if response.status_code == 200:
-                parte_procesada = np.frombuffer(response.content, np.uint8)
-                img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
-                print(f"- Parte {i} procesada correctamente")
-                partes_procesadas.append(img_procesada)
+            with grpc.insecure_channel("localhost:50052") as channel:
+                stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
+                response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
+                if response.status == "ok":
+                    parte_procesada = np.frombuffer(response.imagen_data, np.uint8)
+                    img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
+                    print(f"- Parte {i} procesada correctamente")
+                    partes_procesadas.append(img_procesada)
 
         final = np.vstack(partes_procesadas)
         _, buf = cv2.imencode(".png", final)
