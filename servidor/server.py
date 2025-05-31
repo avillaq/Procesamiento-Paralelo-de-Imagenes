@@ -4,6 +4,7 @@ import io
 import numpy as np
 import cv2
 import requests
+import time
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -34,16 +35,17 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             _, buf = cv2.imencode(".png", pt)
             parte_bytes = buf.tobytes()
             # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
+            time.sleep(1)  # pequeños retrasos para la simulacion 
             response = requests.post("http://localhost:8000/procesar-nodo", files={"img": io.BytesIO(parte_bytes)})
             if response.status_code == 200:
-                # TODO: Hacer que los nodos retorne la imagen procesada. Por el momento solo envian un mensaje.
+                parte_procesada = np.frombuffer(response.content, np.uint8)
+                img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
                 print(f"- Parte {i} procesada correctamente")
-                partes_procesadas.append(pt)
+                partes_procesadas.append(img_procesada)
 
         final = np.vstack(partes_procesadas)
         _, buf = cv2.imencode(".png", final)
         completo_bytes = buf.tobytes()
-        print(f"{completo_bytes}")
 
         # TODO: Enviar la imagen completa procesada al cliente
         return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
