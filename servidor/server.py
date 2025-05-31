@@ -1,5 +1,8 @@
 from pathlib import Path
 import sys
+import io
+import numpy as np
+import cv2
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -9,8 +12,13 @@ import grpc
 from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 
+num_nodos = 8 
+
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
     def ProcesarImagen(self, request, context):
+        imagen_np = np.frombuffer(request.data, dtype=np.uint8)
+        img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+        
         return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
 
 def serve():
