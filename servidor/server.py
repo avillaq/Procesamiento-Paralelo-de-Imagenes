@@ -18,7 +18,16 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
     def ProcesarImagen(self, request, context):
         imagen_np = np.frombuffer(request.data, dtype=np.uint8)
         img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
-        
+
+        # division en partes
+        alto = img.shape[0]
+        alto_parte = alto//num_nodos
+        partes = []
+        for i in range(num_nodos):
+            inicio = i * alto_parte
+            final = (i + 1) * alto_parte if i != num_nodos - 1 else alto
+            partes.append(img[inicio:final, :])
+        print(f"{partes}")
         return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
 
 def serve():
