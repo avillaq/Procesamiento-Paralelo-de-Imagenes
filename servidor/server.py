@@ -22,7 +22,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
 
         # division en partes
         alto = img.shape[0]
-        alto_parte = alto//num_nodos
+        alto_parte = alto//num_nodos # TODO : Manejar el caso cuando la imagen no se pueda dividir en partes iguales
         partes = []
         for i in range(num_nodos):
             inicio = i * alto_parte
@@ -33,7 +33,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
         for i, pt in enumerate(partes):
             _, buf = cv2.imencode(".png", pt)
             parte_bytes = buf.tobytes()
-            # Por el momento solo se envía la parte de la imagen a un nodo
+            # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
             response = requests.post("http://localhost:8000/procesar-nodo", files={"img": io.BytesIO(parte_bytes)})
             if response.status_code == 200:
                 # TODO: Hacer que los nodos retorne la imagen procesada. Por el momento solo envian un mensaje.
@@ -45,6 +45,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
         completo_bytes = buf.tobytes()
         print(f"{completo_bytes}")
 
+        # TODO: Enviar la imagen completa procesada al cliente
         return procesador_pb2.ImagenReply(status="imagen procesada correctamente")
 
 def serve():

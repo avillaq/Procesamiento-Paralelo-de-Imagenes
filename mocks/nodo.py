@@ -10,6 +10,8 @@ def procesar_imagen_nodo():
     data = archivo_imagen.read()
     imagen_np = np.frombuffer(data, dtype=np.uint8)
     img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+    # TODO: Procesar la imagen para convertirlo a blanco y negro
+    # TODO: Devolver la imagen ya procesada al servidor
     return jsonify({"status": "la imagen fue procesada correctamente"})
 
 if __name__ == "__main__":
