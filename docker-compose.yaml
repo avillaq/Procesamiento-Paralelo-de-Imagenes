@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  servidor:
+    build:
+      context: .
+      dockerfile: servidor/Dockerfile
+    ports:
+      - "50051:50051"
+    networks:
+      - imagen-net
+    volumes:
+      - ./servidor:/usr/src/app/servidor
+      - ./proto:/usr/src/app/proto
+
+  nodo:
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
+    ports:
+      - "50052:50052"
+    networks:
+      - imagen-net
+    volumes:
+      - ./nodos:/usr/src/app/nodos
+      - ./proto:/usr/src/app/proto
+
+  cliente:
+    build:
+      context: .
+      dockerfile: cliente/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - servidor
+    networks:
+      - imagen-net
+    volumes:
+      - ./cliente:/usr/src/app/cliente
+      - ./proto:/usr/src/app/proto
+
+networks:
+  imagen-net:
+    driver: bridge
