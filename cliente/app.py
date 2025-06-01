@@ -23,6 +23,8 @@ def procesar_imagen():
     if not data:
         return render_template("index.html", error="La imagen esta vacia")
 
+    # TODO: Incrementar el limite de tamaño de la imagen
+
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
         response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data))

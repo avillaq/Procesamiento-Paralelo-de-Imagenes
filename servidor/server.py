@@ -3,7 +3,6 @@ import sys
 import io
 import numpy as np
 import cv2
-import requests
 import time
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
