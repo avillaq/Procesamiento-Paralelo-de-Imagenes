@@ -19,6 +19,9 @@ class AdministradorNodos:
         nodos_disponibles = os.environ.get("NODOS_DISPONIBLES")
         self.nodos = [f"{node.strip()}" for node in nodos_disponibles.split(",")]
         self.indice_actual = 0
+        
+    def obtener_nodos(self):
+        return self.nodos
 
     def obtener_nodo(self):
         nodo = self.nodos[self.indice_actual]
@@ -29,11 +32,24 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
     def __init__(self):
         self.administrador_nodos = AdministradorNodos()
 
+    def procesar_parte(self, nodo, parte_bytes):
+        with grpc.insecure_channel(nodo) as channel:
+            stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
+            response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
+            if response.status == "ok":
+                parte_procesada = np.frombuffer(response.imagen_data, np.uint8)
+                img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
+                print(f"- Parte procesada correctamente en el nodo {nodo}")
+                return img_procesada
+
+            else:
+                raise Exception("Error al procesar la imagen en el nodo")
+
     def ProcesarImagen(self, request, context):
         imagen_np = np.frombuffer(request.data, dtype=np.uint8)
         img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
 
-        num_nodos = len(self.administrador_nodos.nodos)
+        num_nodos = len(self.administrador_nodos.obtener_nodos())
 
         # division en partes
         alto = img.shape[0]
@@ -51,14 +67,8 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             parte_bytes = buf.tobytes()
             # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
             time.sleep(1)  # pequeños retrasos para la simulacion 
-            with grpc.insecure_channel(nodo) as channel:
-                stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
-                response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
-                if response.status == "ok":
-                    parte_procesada = np.frombuffer(response.imagen_data, np.uint8)
-                    img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
-                    print(f"- Parte {i} procesada correctamente")
-                    partes_procesadas.append(img_procesada)
+            parte_procesada = self.procesar_parte(nodo, parte_bytes)
+            partes_procesadas.append(parte_procesada)
 
         final = np.vstack(partes_procesadas)
         _, buf = cv2.imencode(".png", final)
