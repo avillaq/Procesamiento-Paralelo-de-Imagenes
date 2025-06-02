@@ -2,7 +2,9 @@ version: "3"
 
 services:
   cliente:
-    build: ./cliente
+    build:
+      context: .
+      dockerfile: cliente/Dockerfile
     ports:
       - "8080:8080"
     depends_on:
@@ -11,7 +13,9 @@ services:
       - imagen-net
 
   servidor:
-    build: ./servidor
+    build:
+      context: .
+      dockerfile: servidor/Dockerfile
     ports:
       - "50051:50051"
     networks:
@@ -20,7 +24,9 @@ services:
       - NODOS_DISPONIBLES=nodo1:50052,nodo2:50052,nodo3:50052,nodo4:50052
 
   nodo1:
-    build: ./nodos
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
     ports:
       - "50052:50052"
     networks:
@@ -28,25 +34,31 @@ services:
     
 
   nodo2:
-    build: ./nodos
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
     ports:
-      - "50052:50052"
+      - "50053:50052"
     networks:
       - imagen-net
     
 
   nodo3:
-    build: ./nodos
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
     ports:
-      - "50052:50052"
+      - "50054:50052"
     networks:
       - imagen-net
     
 
   nodo4:
-    build: ./nodos
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
     ports:
-      - "50052:50052"
+      - "50055:50052"
     networks:
       - imagen-net
 
