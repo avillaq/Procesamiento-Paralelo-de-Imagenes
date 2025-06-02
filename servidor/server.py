@@ -33,48 +33,62 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
         self.administrador_nodos = AdministradorNodos()
 
     def procesar_parte(self, nodo, parte_bytes):
-        with grpc.insecure_channel(nodo) as channel:
-            stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
-            response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
-            if response.status == "ok":
-                parte_procesada = np.frombuffer(response.imagen_data, np.uint8)
-                img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
-                print(f"- Parte procesada correctamente en el nodo {nodo}")
-                return img_procesada
+        try:
+            with grpc.insecure_channel(nodo) as channel:
+                stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
+                response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
+                if response.status == "ok":
+                    parte_procesada = np.frombuffer(response.imagen_data, np.uint8)
+                    img_procesada = cv2.imdecode(parte_procesada, cv2.IMREAD_GRAYSCALE)
+                    print(f"- Parte procesada correctamente en el nodo {nodo}")
+                    return img_procesada
 
-            else:
-                raise Exception("Error al procesar la imagen en el nodo")
+        except Exception as e:
+            print(f"Error al procesar la parte en el nodo {nodo}: {e}")
+            return None
 
     def ProcesarImagen(self, request, context):
-        imagen_np = np.frombuffer(request.data, dtype=np.uint8)
-        img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+        try:
+            imagen_np = np.frombuffer(request.data, dtype=np.uint8)
+            img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+            if img is None:
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
-        num_nodos = len(self.administrador_nodos.obtener_nodos())
+            num_nodos = len(self.administrador_nodos.obtener_nodos())
+            if num_nodos == 0:
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
-        # division en partes
-        alto = img.shape[0]
-        alto_parte = alto//num_nodos # TODO : Manejar el caso cuando la imagen no se pueda dividir en partes iguales
-        partes = []
-        for i in range(num_nodos):
-            inicio = i * alto_parte
-            final = (i + 1) * alto_parte if i != num_nodos - 1 else alto
-            partes.append(img[inicio:final, :])
-        
-        partes_procesadas = []
-        for i, pt in enumerate(partes):
-            nodo = self.administrador_nodos.obtener_nodo()
-            _, buf = cv2.imencode(".png", pt)
-            parte_bytes = buf.tobytes()
-            # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
-            time.sleep(1)  # pequeños retrasos para la simulacion 
-            parte_procesada = self.procesar_parte(nodo, parte_bytes)
-            partes_procesadas.append(parte_procesada)
+            # division en partes
+            alto = img.shape[0]
+            alto_parte = alto//num_nodos # TODO : Manejar el caso cuando la imagen no se pueda dividir en partes iguales
+            partes = []
+            for i in range(num_nodos):
+                inicio = i * alto_parte
+                final = (i + 1) * alto_parte if i != num_nodos - 1 else alto
+                partes.append(img[inicio:final, :])
+            
+            partes_procesadas = []
+            for i, pt in enumerate(partes):
+                nodo = self.administrador_nodos.obtener_nodo()
+                _, buf = cv2.imencode(".png", pt)
+                parte_bytes = buf.tobytes()
 
-        final = np.vstack(partes_procesadas)
-        _, buf = cv2.imencode(".png", final)
-        completo_bytes = buf.tobytes()
+                time.sleep(1)  # pequeños retrasos para la simulacion 
 
-        return procesador_pb2.ImagenReply(status="ok", imagen_data=completo_bytes)
+                parte_procesada = self.procesar_parte(nodo, parte_bytes)
+                if parte_procesada is None:
+                    return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
+
+                partes_procesadas.append(parte_procesada)
+
+            final = np.vstack(partes_procesadas)
+            _, buf = cv2.imencode(".png", final)
+            completo_bytes = buf.tobytes()
+
+            return procesador_pb2.ImagenReply(status="ok", imagen_data=completo_bytes)
+        except Exception as e:
+            print(f"Error al procesar la imagen: {e}")
+            return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
 def serve():
     puerto = "50051"
