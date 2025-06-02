@@ -3,6 +3,7 @@ import sys
 import io
 import numpy as np
 import cv2
+import os
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -13,6 +14,9 @@ from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 
 class Nodo(procesador_pb2_grpc.ProcesadorImagenServicer):
+    def __init__(self):
+        self.id_nodo = os.environ.get("ID")
+
     def ProcesarImagen(self, request, context):
         imagen_np = np.frombuffer(request.data, dtype=np.uint8)
         img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
@@ -21,11 +25,11 @@ class Nodo(procesador_pb2_grpc.ProcesadorImagenServicer):
         img_gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, buf = cv2.imencode(".png", img_gris)
         resultado_bytes = buf.tobytes()
-
+        print(f"Proceso terminado. Nodo: {self.id_nodo}")
         return procesador_pb2.ImagenReply(status="ok", imagen_data=resultado_bytes)
 
 def serve():
-    puerto = "50052"
+    puerto = os.environ.get("PORT")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
     procesador_pb2_grpc.add_ProcesadorImagenServicer_to_server(Nodo(), server)
     server.add_insecure_port("[::]:" + puerto)
