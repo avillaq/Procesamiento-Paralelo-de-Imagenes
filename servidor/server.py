@@ -4,6 +4,7 @@ import io
 import numpy as np
 import cv2
 import time
+import os
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -13,12 +14,26 @@ import grpc
 from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 
-num_nodos = 8 
+class AdministradorNodos:
+    def __init__(self):
+        nodos_disponibles = os.environ.get("NODOS_DISPONIBLES")
+        self.nodos = [f"{node.strip()}" for node in nodos_disponibles.split(",")]
+        self.indice_actual = 0
+
+    def obtener_nodo(self):
+        nodo = self.nodos[self.indice_actual]
+        self.indice_actual = (self.indice_actual + 1) % len(self.nodos)
+        return nodo
 
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
+    def __init__(self):
+        self.administrador_nodos = AdministradorNodos()
+
     def ProcesarImagen(self, request, context):
         imagen_np = np.frombuffer(request.data, dtype=np.uint8)
         img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+
+        num_nodos = len(self.administrador_nodos.nodos)
 
         # division en partes
         alto = img.shape[0]
@@ -31,11 +46,12 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
         
         partes_procesadas = []
         for i, pt in enumerate(partes):
+            nodo = self.administrador_nodos.obtener_nodo()
             _, buf = cv2.imencode(".png", pt)
             parte_bytes = buf.tobytes()
             # TODO: Enviar las partes a los diferentes nodos. Por el momento se envian a un nodo
             time.sleep(1)  # pequeños retrasos para la simulacion 
-            with grpc.insecure_channel("localhost:50052") as channel:
+            with grpc.insecure_channel(nodo) as channel:
                 stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
                 response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=parte_bytes))
                 if response.status == "ok":
