@@ -18,15 +18,21 @@ class Nodo(procesador_pb2_grpc.ProcesadorImagenServicer):
         self.id_nodo = os.environ.get("ID")
 
     def ProcesarImagen(self, request, context):
-        imagen_np = np.frombuffer(request.data, dtype=np.uint8)
-        img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+        try:
+            imagen_np = np.frombuffer(request.data, dtype=np.uint8)
+            img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
+            if img is None:
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
-        # Se puede realizar otro procesamiento pero por el momento solo se convierte a escala de grises
-        img_gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        _, buf = cv2.imencode(".png", img_gris)
-        resultado_bytes = buf.tobytes()
-        print(f"Proceso terminado. Nodo: {self.id_nodo}")
-        return procesador_pb2.ImagenReply(status="ok", imagen_data=resultado_bytes)
+            # Se puede realizar otro procesamiento pero por el momento solo se convierte a escala de grises
+            img_gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            _, buf = cv2.imencode(".png", img_gris)
+            resultado_bytes = buf.tobytes()
+            print(f"Proceso terminado. Nodo: {self.id_nodo}")
+            return procesador_pb2.ImagenReply(status="ok", imagen_data=resultado_bytes)
+        except Exception as e:
+            print(f"Error al procesar la imagen en el nodo {self.id_nodo}: {e}")
+            return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
 def serve():
     puerto = os.environ.get("PORT")

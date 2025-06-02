@@ -25,13 +25,14 @@ def procesar_imagen():
 
     # TODO: Incrementar el limite de tamaño de la imagen
 
-    with grpc.insecure_channel("localhost:50051") as channel:
+    with grpc.insecure_channel("servidor:50051") as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
         response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data))
         if response.status == "ok":
             imagen_base64 = base64.b64encode(response.imagen_data).decode("utf-8")
             return render_template("resultado.html", imagen_procesada=imagen_base64)
-    return render_template("index.html", error="Error al procesar la imagen")
+        else:
+            return render_template("index.html", error="Error en el procesamiento de la imagen")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
