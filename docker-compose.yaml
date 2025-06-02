@@ -27,38 +27,39 @@ services:
     build:
       context: .
       dockerfile: nodos/Dockerfile
-    ports:
-      - "50052:50052"
+    environment:
+      - ID=1
+      - PORT=50052
     networks:
       - imagen-net
-    
 
   nodo2:
     build:
       context: .
       dockerfile: nodos/Dockerfile
-    ports:
-      - "50053:50052"
+    environment:
+      - ID=1
+      - PORT=50052
     networks:
       - imagen-net
-    
 
   nodo3:
     build:
       context: .
       dockerfile: nodos/Dockerfile
-    ports:
-      - "50054:50052"
+    environment:
+      - ID=1
+      - PORT=50052
     networks:
       - imagen-net
-    
 
   nodo4:
     build:
       context: .
       dockerfile: nodos/Dockerfile
-    ports:
-      - "50055:50052"
+    environment:
+      - ID=1
+      - PORT=50052
     networks:
       - imagen-net
 
