@@ -6,7 +6,6 @@ from werkzeug.utils import secure_filename
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, url_for
-import base64
 
 import grpc
 from proto import procesador_pb2
@@ -32,9 +31,19 @@ def resultado():
 
 @app.route("/procesar", methods=["POST"])
 def procesar_imagen():
+    if "img" not in request.files:
+        return jsonify({"error": "No se ha enviado ninguna imagen"}), 400
+    
     archivo_imagen = request.files["img"]
 
-    # TODO: Incrementar el limite de tamaño de la imagen
+    if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png"]:
+        return jsonify({"error": "Formato de imagen no soportado"}), 400
+    
+    data = archivo_imagen.read()
+    tamaño_mb = len(data) / (1024 * 1024)
+    if tamaño_mb > 4:
+        return jsonify({"error": "El tamaño de la imagen no debe exceder los 4 MB"}), 400
+    archivo_imagen.seek(0)
 
     nombre_imagen = str(uuid.uuid4()) + "-" + secure_filename(archivo_imagen.filename)
     path_original = os.path.join(CARPETA_SUBIDOS, nombre_imagen)
@@ -56,7 +65,6 @@ def procesar_imagen():
             with open(path_final, "wb") as f:
                 f.write(response.imagen_data)
                 return jsonify({
-                    "success": True,
                     "original": url_for("archivos_subidos", nombre_archivo=nombre_imagen, _external=True),
                     "final": url_for("archivos_procesados", nombre_archivo=nombre_final_imagen, _external=True),
                 })

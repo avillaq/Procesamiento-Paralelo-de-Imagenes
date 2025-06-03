@@ -1,6 +1,5 @@
 from pathlib import Path
 import sys
-import io
 import numpy as np
 import cv2
 import os

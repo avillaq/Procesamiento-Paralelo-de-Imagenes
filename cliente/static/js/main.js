@@ -160,7 +160,8 @@ class ImageProcessor {
       this.stopSimulation = true;
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error);
       }
 
       // Simular la segunda fase de procesamiento
@@ -186,7 +187,9 @@ class ImageProcessor {
       
     } catch (error) {
       console.error("Error en el procesamiento:", error);
-      this.progressText.textContent = "Error al procesar la imagen";
+      this.stopSimulation = true;
+      this.updateProgress(0);
+      this.progressText.textContent = error;
       btnText.textContent = "Reintentar";
       btnLoader.classList.remove("show");
       this.processBtn.disabled = false;
