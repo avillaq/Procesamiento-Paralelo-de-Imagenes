@@ -37,8 +37,12 @@
               <label for="file-upload" class="custom-file-upload">
                 Seleccionar archivo
               </label>
+              <div class="upload-restrictions">
+                <p>Formatos permitidos: jpg, png, jpge, webp</p>
+                <p>Tamaño maximo: 4 MB</p>
+              </div>
             </div>
-            <input id="file-upload" type="file" name="image" accept="image/*" required />
+            <input id="file-upload" type="file" name="image" accept=".jpg,.png,.webp,.jpge" required />
           </div>
         </div>
 
@@ -85,4 +89,5 @@
   </div>
 
 </body>
+
 </html>

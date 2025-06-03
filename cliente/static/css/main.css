@@ -667,3 +667,21 @@ input[type="file"] {
 .upload-icon svg {
   animation: pulse 2s infinite;
 }
+/* Formatos soportados y tamaño maximo */
+.upload-restrictions {
+    margin-top: 15px;
+    padding: 8px 15px;
+    background-color: rgba(52, 152, 219, 0.1);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.upload-restrictions p {
+    margin: 5px 0;
+    text-align: center;
+}
+
+.upload-area.dragover .upload-restrictions {
+    color: var(--primary);
+}

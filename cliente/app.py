@@ -36,7 +36,7 @@ def procesar_imagen():
     
     archivo_imagen = request.files["img"]
 
-    if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png"]:
+    if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "webp"]:
         return jsonify({"error": "Formato de imagen no soportado"}), 400
     
     data = archivo_imagen.read()
