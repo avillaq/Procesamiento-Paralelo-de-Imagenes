@@ -1,20 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Procesador de imagenes</title>
+  <title>Procesamiento Paralelo de Imagenes</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-  <h1>Procesador de imagenes</h1>
-  <form action="/procesar" method="post" enctype="multipart/form-data">
-    <input type="file" name="img" required accept="image/*">
-    <br>
-    <button type="submit">Subir Imagen</button>
 
-    {% if error %}
-      <p style="color: red;">{{ error }}</p>
-    {% endif %}
-  </form>
+<body>
+  <div class="container">
+    <header>
+      <h1>Procesamiento Paralelo de Imagenes</h1>
+      <p class="subtitle">Sube tu imagen</p>
+    </header>
+
+    <main>
+      <form id="upload-form">
+        <div class="upload-container">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-content" id="uploadContent">
+              <div class="upload-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="upload-text">Arrastra y suelta tu imagen aquí</p>
+              <p class="upload-text-small">o</p>
+              <label for="file-upload" class="custom-file-upload">
+                Seleccionar archivo
+              </label>
+            </div>
+            <input id="file-upload" type="file" name="image" accept="image/*" required />
+          </div>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+          <div class="image-preview" id="imagePreview">
+            <div class="preview-image">
+              <img id="previewImg" src="#" alt="Vista previa" />
+              <div class="image-overlay">
+                <div class="check-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="image-info">
+              <h3 id="fileName">ejemplo.jpg</h3>
+              <div class="file-details">
+                <span class="file-size" id="fileSize">0 MB</span>
+                <span class="file-dimensions" id="fileDimensions">0 x 0</span>
+                <span class="file-type" id="fileType">JPG</span>
+              </div>
+              <div class="upload-status">
+                <span class="status-text">✓ Imagen cargada correctamente</span>
+              </div>
+            </div>
+          </div>
+          <div class="upload-progress" id="uploadProgress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">Subiendo imagen...</p>
+            <div class="progress-percentage" id="progressPercentage">0%</div>
+          </div>
+        </div>
+
+        <button type="submit" class="process-btn" id="processBtn" disabled>
+          <span class="btn-text">Selecciona una imagen</span>
+          <div class="btn-loader"></div>
+        </button>
+      </form>
+    </main>
+  </div>
+
 </body>
 </html>
