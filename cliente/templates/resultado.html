@@ -1,14 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resultado - Procesamiento de imagenes</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado - Procesamiento Paralelo de Imagenes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Resultado</h1>
-  <img src="data:image/png;base64,{{ imagen_procesada }}" alt="Imagen Procesada">
-  <br>
-  <p><a href="/">Volver al inicio</a></p>
+    <div class="container result-page">
+        <header>
+            <h1>Imagen Procesada</h1>
+            <p class="subtitle">¡Tu imagen ha sido transformada!</p>
+        </header>
+        
+        <main>
+            <div class="result-container">
+                <div class="image-comparison">
+                    <div class="image-box original">
+                        <h3>Imagen Original</h3>
+                        <div class="image-placeholder" id="originalImageContainer">
+                            <img src="" id="originalImage" style="max-width: 100%; max-height: 200px; display: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="originalPlaceholder">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <div class="image-box processed">
+                        <h3>Imagen Procesada</h3>
+                        <div class="image-placeholder processed-effect" id="processedImageContainer">
+                            <img src="" id="processedImage" style="max-width: 100%; max-height: 200px; display: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="processedPlaceholder">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-actions">
+                    <a href="/" class="btn back-btn">Procesar otra imagen</a>
+                    <a href="#" class="btn download-btn" id="downloadBtn">Descargar imagen</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const originalPath = urlParams.get("original");
+            const finalPath = urlParams.get("final");
+            
+            const originalImg = document.querySelector("#originalImage");
+            const finalImg = document.querySelector("#finalImage");
+            const originalPlaceholder = document.querySelector("#originalPlaceholder");
+            const finalPlaceholder = document.querySelector("#finalPlaceholder");
+            const downloadBtn = document.querySelector("#downloadBtn");
+            
+            if (originalPath) {
+                originalImg.src = originalPath;
+                originalImg.style.display = "block";
+                originalPlaceholder.style.display = "none";
+            }
+            
+            if (finalPath) {
+                finalImg.src = finalPath;
+                finalImg.style.display = "block";
+                finalPlaceholder.style.display = "none";
+                downloadBtn.setAttribute("href", finalPath);
+                downloadBtn.setAttribute("download", "imagen_procesada.jpg");
+            }
+        });
+    </script>
 </body>
 </html>
