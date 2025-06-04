@@ -2,7 +2,6 @@ from pathlib import Path
 import sys
 import numpy as np
 import cv2
-import time
 import os
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -71,8 +70,6 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
                 nodo = self.administrador_nodos.obtener_nodo()
                 _, buf = cv2.imencode(".png", pt)
                 parte_bytes = buf.tobytes()
-
-                time.sleep(1)  # pequeños retrasos para la simulacion 
 
                 parte_procesada = self.procesar_parte(nodo, parte_bytes)
                 if parte_procesada is None:
