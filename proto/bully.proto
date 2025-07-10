@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+service BullyService {
+  rpc Eleccion(EleccionRequest) returns (EleccionReply);
+  rpc Coordinador(CoordinadorRequest) returns (CoordinadorReply);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatReply);
+  rpc Respuesta(RespuestaRequest) returns (RespuestaReply);
+}
+
+message EleccionRequest {
+  int32 node_id = 1;
+}
+
+message EleccionReply {
+  string status = 1;
+}
+
+message CoordinadorRequest {
+  int32 coordinador_id = 1;
+}
+
+message CoordinadorReply {
+  string status = 1;
+}
+
+message HeartbeatRequest {
+  int32 node_id = 1;
+}
+
+message HeartbeatReply {
+  string status = 1;
+  bool is_alive = 2;
+}
+
+message RespuestaRequest {
+  int32 node_id = 1;
+}
+
+message RespuestaReply {
+  string status = 1;
+}
