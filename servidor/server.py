@@ -131,12 +131,24 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje=str(e))
 
 def serve():
-    puerto = "50051"
+    # configuracion del nodo
+    nodo_id = int(os.environ.get("NODO_ID", "0"))
+    nodos_conocidos = os.environ.get("NODOS_CONOCIDOS", "").split(",")
+    nodos_conocidos = [node.strip() for node in nodos_conocidos if node.strip()]
+
+    # coordinador Bully
+    bully_coordinador = BullyCoordinador(nodo_id, nodos_conocidos)
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    procesador_pb2_grpc.add_ProcesadorImagenServicer_to_server(Servidor(), server)
+    procesador_pb2_grpc.add_ProcesadorImagenServicer_to_server(Servidor(bully_coordinador), server)
+    bully_pb2_grpc.add_BullyServiceServicer_to_server(bully_coordinador, server)
+
+    puerto = "50051"
     server.add_insecure_port("[::]:" + puerto)
     server.start()
-    print("Server iniciado, escuchando en " + puerto)
+
+    bully_coordinador.iniciar_servicios() # se inicia servicios de bully
+    logger.info(f"Servidor iniciado en el puerto {puerto} con ID de nodo {nodo_id}")
     server.wait_for_termination()
 
 if __name__ == "__main__":
