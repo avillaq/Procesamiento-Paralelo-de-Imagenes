@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import numpy as np
 import cv2
+import logging
 import os
 import threading
 import time
@@ -15,6 +16,9 @@ from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 from proto import bully_pb2_grpc
 from servidor.bully_coordinador import BullyCoordinador
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AdministradorNodos:
     def __init__(self, bully_coordinador):
@@ -89,13 +93,31 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             
             partes_procesadas = []
             for i, pt in enumerate(partes):
-                nodo = self.administrador_nodos.get_nodo()
-                _, buf = cv2.imencode(".png", pt)
-                parte_bytes = buf.tobytes()
+                max_reintentos = 3
+                parte_procesada = None
 
-                parte_procesada = self.procesar_parte(nodo, parte_bytes)
+                for intento in range(max_reintentos): # reintentos para procesar la parte
+                    try:
+                        nodo = self.administrador_nodos.get_nodo()
+                        _, buf = cv2.imencode(".png", pt)
+                        parte_bytes = buf.tobytes()
+
+                        parte_procesada = self.procesar_parte(nodo, parte_bytes)
+                        if parte_procesada:
+                            break
+
+                    except Exception as e:
+                        logger.warning(f"Intento {intento + 1} fallido para parte {i}: {e}")
+                        if intento == max_reintentos - 1:
+                            return procesador_pb2.ImagenReply(
+                                status="error", 
+                                imagen_data=b"",
+                                mensaje=f"Error procesando parte {i} despues de {max_reintentos} intentos"
+                            )
+                
+                
                 if parte_procesada is None:
-                    return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
+                    return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje=f"Error procesando parte {i} en nodo {nodo}")
 
                 partes_procesadas.append(parte_procesada)
 
@@ -105,8 +127,8 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
 
             return procesador_pb2.ImagenReply(status="ok", imagen_data=completo_bytes)
         except Exception as e:
-            print(f"Error al procesar la imagen: {e}")
-            return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
+            logger.error(f"Error al procesar la imagen: {e}")
+            return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje=str(e))
 
 def serve():
     puerto = "50051"
