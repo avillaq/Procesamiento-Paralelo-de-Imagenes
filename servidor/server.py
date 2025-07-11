@@ -33,8 +33,9 @@ class AdministradorNodos:
         return nodo
 
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
-    def __init__(self):
-        self.administrador_nodos = AdministradorNodos()
+    def __init__(self, bully_coordinador):
+        self.administrador_nodos = AdministradorNodos(bully_coordinador)
+        self.bully_coordinador = bully_coordinador
 
     def procesar_parte(self, nodo, parte_bytes):
         try:
@@ -53,23 +54,38 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
 
     def ProcesarImagen(self, request, context):
         try:
+            # se verifica si hay un coordinador disponible
+            if not self.bully_coordinador.get_actual_coordinador():
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje="No hay coordinador disponible")
+
             imagen_np = np.frombuffer(request.data, dtype=np.uint8)
             img = cv2.imdecode(imagen_np, cv2.IMREAD_COLOR)
             if img is None:
-                return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje="Error al decodificar la imagen")
 
-            num_nodos = len(self.administrador_nodos.get_nodos())
-            if num_nodos == 0:
-                return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
+            nodos_disponibles = self.administrador_nodos.get_nodos()
+            if not nodos_disponibles:
+                return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje="No hay nodos disponibles")
 
             # division en partes
-            alto = img.shape[0]
-            alto_parte = alto//num_nodos # TODO : Manejar el caso cuando la imagen no se pueda dividir en partes iguales
+            alto = img.shape[0] # Altura
+            num_nodos = len(nodos_disponibles)
+
+            # particion de forma horizontal
+            alto_parte = alto//num_nodos 
+            resto = alto%num_nodos
             partes = []
+            inicio = 0
             for i in range(num_nodos):
-                inicio = i * alto_parte
-                final = (i + 1) * alto_parte if i != num_nodos - 1 else alto
+                # se distrinuye el resto entre las primeras partes
+                extra = 1 if i < resto else 0 
+                final = inicio + alto_parte + extra
+
+                if i == num_nodos - 1:  # ultima parte toma todo lo que queda
+                    final = alto
+
                 partes.append(img[inicio:final, :])
+                inicio = final
             
             partes_procesadas = []
             for i, pt in enumerate(partes):
