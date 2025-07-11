@@ -149,7 +149,13 @@ def serve():
 
     bully_coordinador.iniciar_servicios() # se inicia servicios de bully
     logger.info(f"Servidor iniciado en el puerto {puerto} con ID de nodo {nodo_id}")
-    server.wait_for_termination()
+    
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        logger.info("Deteniendo servidor...")
+        bully_coordinador.detener_servicios()
+        server.stop(0)
 
 if __name__ == "__main__":
     serve()
