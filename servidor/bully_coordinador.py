@@ -56,9 +56,9 @@ class BullyCoordinador(bully_pb2_grpc.BullyServiceServicer):
             
             if request.nodo_id < self.nodo_id:
                 threading.Thread(target=self._iniciar_eleccion, daemon=True).start()
-                return bully_pb2.EleccionReply(status="respuesta")
-            else:
                 return bully_pb2.EleccionReply(status="ok")
+            else:
+                return bully_pb2.EleccionReply(status="error")
 
     def Respuesta(self, request, context):
         """Recibe respuesta de un nodo con mayor ID"""
@@ -100,7 +100,7 @@ class BullyCoordinador(bully_pb2_grpc.BullyServiceServicer):
                 with grpc.insecure_channel(direccion) as channel:
                     stub = bully_pb2_grpc.BullyServiceStub(channel)
                     response = stub.Eleccion(bully_pb2.EleccionRequest(nodo_id=self.nodo_id), timeout=self.eleccion_timeout)
-                    if response.status == "respuesta":
+                    if response.status == "ok":
                         respuesta_recibida = True
                         logger.info(f"Nodo {self.nodo_id}: Recibida respuesta de {direccion}")
             except Exception as e:
@@ -174,24 +174,26 @@ class BullyCoordinador(bully_pb2_grpc.BullyServiceServicer):
 
     def _get_nodo_id(self, direccion):
         """Extrae el ID del nodo de su dirección"""
-        # Asume formato "nodoX:puerto"
+        # formato "nodoX:puerto"
         try:
-            nodo_name = direccion.split(':')[0]
-            return int(nodo_name.replace('nodo', ''))
+            nodo_name = direccion.split(":")[0]
+            if nodo_name == "servidor":
+                return 0
+            return int(nodo_name.replace("nodo", ""))
         except:
             return 0
 
     def _get_nodo_direccion(self, nodo_id):
         """Obtiene la dirección de un nodo por su ID"""
-        for addr in self.lista_nodos:
-            if self._get_nodo_id(addr) == nodo_id:
-                return addr
+        for direccion in self.lista_nodos:
+            if self._get_nodo_id(direccion) == nodo_id:
+                return direccion
         return None
 
     # Métodos públicos para integración
     def get_actual_coordinador(self):
         """Retorna el ID del coordinador actual"""
-        return self.current_coordinador
+        return self.coordinador_actual
 
     def es_actual_coordinador(self):
         """Verifica si este nodo es el coordinador actual"""
