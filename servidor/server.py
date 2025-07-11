@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import cv2
 import os
+import threading
+import time
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -11,19 +13,23 @@ from concurrent import futures
 import grpc
 from proto import procesador_pb2
 from proto import procesador_pb2_grpc
+from proto import bully_pb2_grpc
+from servidor.bully_coordinador import BullyCoordinador
 
 class AdministradorNodos:
-    def __init__(self):
-        nodos_disponibles = os.environ.get("NODOS_DISPONIBLES")
-        self.nodos = [f"{node.strip()}" for node in nodos_disponibles.split(",")]
-        self.indice_actual = 0
+    def __init__(self, bully_coordinador):
+        self.bully_coordinador = bully_coordinador
+        self.id_actual = 0
         
-    def obtener_nodos(self):
-        return self.nodos
+    def get_nodos(self):
+        return self.bully_coordinador.get_nodos_disponibles()
 
-    def obtener_nodo(self):
-        nodo = self.nodos[self.indice_actual]
-        self.indice_actual = (self.indice_actual + 1) % len(self.nodos)
+    def get_nodo(self):
+        nodos = self.get_nodos()
+        if not nodos:
+            raise Exception("No hay nodos disponibles")
+        nodo = nodos[self.id_actual % len(nodos)]
+        self.id_actual = (self.id_actual + 1) % len(nodos)
         return nodo
 
 class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
@@ -52,7 +58,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             if img is None:
                 return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
-            num_nodos = len(self.administrador_nodos.obtener_nodos())
+            num_nodos = len(self.administrador_nodos.get_nodos())
             if num_nodos == 0:
                 return procesador_pb2.ImagenReply(status="error", imagen_data=b"")
 
@@ -67,7 +73,7 @@ class Servidor(procesador_pb2_grpc.ProcesadorImagenServicer):
             
             partes_procesadas = []
             for i, pt in enumerate(partes):
-                nodo = self.administrador_nodos.obtener_nodo()
+                nodo = self.administrador_nodos.get_nodo()
                 _, buf = cv2.imencode(".png", pt)
                 parte_bytes = buf.tobytes()
 
