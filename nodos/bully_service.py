@@ -150,13 +150,19 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
         """Monitorea coordinador actual"""
         while self.running:
             time.sleep(self.intervalo_heartbeat)
+
+            coordinador_a_revisar = None
+
+            with self.lock:
+                if not self.es_coordinador and self.coordinador_actual is not None:
+                    coordinador_a_revisar = self.coordinador_actual
             
-            if not self.es_coordinador and self.coordinador_actual is not None:
-                if not self._verificar_coordinador_alive():
-                    logger.warning(f"Nodo {self.nodo_id}: Coordinador {self.coordinador_actual} no responde")
-                    with self.lock:
+            if coordinador_a_revisar and not self._verificar_coordinador_alive():
+                logger.warning(f"Nodo {self.nodo_id}: Coordinador {coordinador_a_revisar} no responde")
+                with self.lock:
+                    if self.coordinador_actual == coordinador_a_revisar:
                         self.coordinador_actual = None
-                    threading.Thread(target=self._iniciar_eleccion, daemon=True).start()
+                threading.Thread(target=self._iniciar_eleccion, daemon=True).start()
 
     def _verificar_coordinador_alive(self):
         """Verifica si el coordinador actual está vivo"""
