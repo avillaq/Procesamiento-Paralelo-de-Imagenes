@@ -1,11 +1,7 @@
-from pathlib import Path
-import sys
 import numpy as np
 import cv2
 import os
 import logging
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from concurrent import futures
 
@@ -23,8 +19,13 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
         self.nodo_id = nodo_id
         self.bully_service = bully_service
         self.indice_nodo = 0
-
+    
     # implementacion
+    def EstadoNodo(self, request, context):
+        """Retorna el estado del nodo"""
+        logger.info(f"Nodo {self.nodo_id}: Estado solicitado")
+        return procesador_pb2.EstadoReply(es_coordinador=self.bully_service.es_coordinador)
+
     def ProcesarImagen(self, request, context):
         try:
             imagen_np = np.frombuffer(request.data, dtype=np.uint8)
@@ -73,6 +74,8 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
             partes.append(img[inicio:final, :])
             inicio = final
         
+        logger.info(f"Nodo {self.nodo_id}: Procesando imagen en {num_nodos} partes")
+        logger.info(f"Nodos disponibles: {nodos_disponibles}")
         partes_procesadas = []
         for i, pt in enumerate(partes):
             resultado = self._procesar_parte_en_nodo(pt, nodos_disponibles[i % len(nodos_disponibles)])
