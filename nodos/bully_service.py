@@ -197,13 +197,14 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
         """Lista de nodos disponibles para procesamiento"""
         disponibles = []
         for direccion in self.lista_nodos:
-            try:
-                # se cambia puerto de bully (50053) a procesamiento (50052)
-                direccion_proc = direccion.replace(":50053", ":50052")
-                with grpc.insecure_channel(direccion_proc) as channel:
-                    channel_listo = grpc.channel_ready_future(channel)
-                    channel_listo.result(timeout=1.0)
-                    disponibles.append(direccion_proc)
-            except:
-                pass
+            if self._get_nodo_id(direccion) != self.nodo_id:
+                try:
+                    # se cambia puerto de bully (50053) a procesamiento (50052)
+                    direccion_proc = direccion.replace(":50053", ":50052")
+                    with grpc.insecure_channel(direccion_proc) as channel:
+                        channel_listo = grpc.channel_ready_future(channel)
+                        channel_listo.result(timeout=1.0)
+                        disponibles.append(direccion_proc)
+                except:
+                    pass
         return disponibles
