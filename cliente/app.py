@@ -26,6 +26,17 @@ NODOS_DISPONIBLES = [ # estaticos por ahora
     "nodo4:50052"
 ]
 
+def encontrar_coordinador():
+    for nodo in NODOS_DISPONIBLES:
+        try:
+            with grpc.insecure_channel(nodo) as channel:
+                future = grpc.channel_ready_future(channel)
+                future.result(timeout=2.0)
+                return nodo
+        except Exception:
+            continue
+    return None
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -65,9 +76,14 @@ def procesar_imagen():
     with open(path_original, "rb") as f:
         data = f.read()
 
-    with grpc.insecure_channel("servidor:50051") as channel:
+    # se intenta encontrar un nodo coordinador
+    coordinador = encontrar_coordinador()
+    if not coordinador:
+        return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
+
+    with grpc.insecure_channel(coordinador) as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
-        response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data))
+        response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
         if response.status == "ok":
             with open(path_final, "wb") as f:
                 f.write(response.imagen_data)
