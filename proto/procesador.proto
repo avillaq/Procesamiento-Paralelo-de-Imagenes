@@ -2,6 +2,7 @@ syntax = "proto3";
 
 service ProcesadorImagen {
   rpc ProcesarImagen(ImagenRequest) returns (ImagenReply);
+  rpc EstadoNodo(EstadoRequest) returns (EstadoReply);
 }
 
 message ImagenRequest {
@@ -12,4 +13,9 @@ message ImagenReply {
   string status = 1;
   bytes imagen_data = 2;
   string mensaje = 3;
+}
+
+message EstadoRequest {}
+message EstadoReply {
+  bool es_coordinador = 1;
 }
