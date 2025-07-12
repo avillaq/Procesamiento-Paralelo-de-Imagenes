@@ -33,7 +33,7 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
                 return procesador_pb2.ImagenReply(status="error", imagen_data=b"", mensaje="Error al decodificar la imagen")
 
             # Si es coordinador, dividir y distribuir
-            if self.bully_coordinador.es_coordinador:
+            if self.bully_service.es_coordinador:
                 return self._procesar_como_coordinador(img)
             else:
                 # se convierte a escala de grises
@@ -45,7 +45,7 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
 
     def _procesar_como_coordinador(self, img):
         """ Divide la imagen en partes y distribuye a nodos disponibles"""
-        nodos_disponibles = self.bully_coordinador.get_nodos_disponibles()
+        nodos_disponibles = self.bully_service.get_nodos_disponibles()
         if not nodos_disponibles:
             return procesador_pb2.ImagenReply(
                 status="error", 
