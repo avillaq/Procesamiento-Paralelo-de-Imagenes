@@ -1,15 +1,16 @@
-from pathlib import Path
-import sys
 import os
 import uuid
 from werkzeug.utils import secure_filename
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import logging
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, url_for
 
 import grpc
 from proto import procesador_pb2
 from proto import procesador_pb2_grpc
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -19,20 +20,18 @@ CARPETA_PROCESADOS = "procesados"
 os.makedirs(CARPETA_SUBIDOS, exist_ok=True)
 os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 
-NODOS_DISPONIBLES = [ # estaticos por ahora 
-    "nodo1:50052",
-    "nodo2:50052", 
-    "nodo3:50052",
-    "nodo4:50052"
-]
-
+NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
+logger.info(f"Nodos conocidos: {NODOS_CONOCIDOS}")
 def encontrar_coordinador():
-    for nodo in NODOS_DISPONIBLES:
+    for direccion in NODOS_CONOCIDOS:
+        direccion_proc = direccion.replace(":50053", ":50052") 
         try:
-            with grpc.insecure_channel(nodo) as channel:
-                future = grpc.channel_ready_future(channel)
-                future.result(timeout=2.0)
-                return nodo
+            with grpc.insecure_channel(direccion_proc) as channel:
+                stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
+                response = stub.EstadoNodo(procesador_pb2.EstadoRequest(), timeout=2.0)
+                logger.info(f"Coordinador encontrado en {direccion_proc}: {response.es_coordinador}")
+                if response.es_coordinador:
+                    return direccion_proc
         except Exception:
             continue
     return None
@@ -81,6 +80,7 @@ def procesar_imagen():
     if not coordinador:
         return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
 
+    logger.info(f"Enviando imagen a coordinador {coordinador} para procesamiento...")
     with grpc.insecure_channel(coordinador) as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
         response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
@@ -103,4 +103,4 @@ def archivos_procesados(nombre_archivo):
     return send_from_directory(CARPETA_PROCESADOS, nombre_archivo)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)
