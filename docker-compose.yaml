@@ -6,34 +6,23 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - servidor
+      - nodo1
+      - nodo2
+      - nodo3
+      - nodo4
     networks:
       - imagen-net
-
-  servidor:
-    build:
-      context: .
-      dockerfile: servidor/Dockerfile
-    ports:
-      - "50051:50051"
-      - "50054:50054" # puerto para el servidor Bully
-    networks:
-      - imagen-net
-    environment:
-      - NODO_ID=0
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
 
   nodo1:
     build:
       context: .
       dockerfile: nodos/Dockerfile
     ports:
-      - "50055:50053" # puerto para Bully
+      - "50052:50052"  # procesamiento
+      - "50053:50053"  # bully
     environment:
       - NODO_ID=1
-      - PORT=50052
-      - BULLY_PORT=50053
-      - NODOS_CONOCIDOS=servidor:50054,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     networks:
       - imagen-net
 
@@ -42,12 +31,11 @@ services:
       context: .
       dockerfile: nodos/Dockerfile
     ports:
-      - "50056:50053" # puerto para Bully
+      - "50052:50052"  # procesamiento
+      - "50053:50053"  # bully
     environment:
       - NODO_ID=2
-      - PORT=50052
-      - BULLY_PORT=50053
-      - NODOS_CONOCIDOS=servidor:50054,nodo1:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     networks:
       - imagen-net
 
@@ -56,12 +44,11 @@ services:
       context: .
       dockerfile: nodos/Dockerfile
     ports:
-      - "50057:50053" # puerto para Bully
+      - "50052:50052"  # procesamiento
+      - "50053:50053"  # bully
     environment:
       - NODO_ID=3
-      - PORT=50052
-      - BULLY_PORT=50053
-      - NODOS_CONOCIDOS=servidor:50054,nodo1:50053,nodo2:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     networks:
       - imagen-net
 
@@ -70,12 +57,11 @@ services:
       context: .
       dockerfile: nodos/Dockerfile
     ports:
-      - "50058:50053" # puerto para Bully
+      - "50052:50052"  # procesamiento
+      - "50053:50053"  # bully
     environment:
       - NODO_ID=4
-      - PORT=50052
-      - BULLY_PORT=50053
-      - NODOS_CONOCIDOS=servidor:50054,nodo1:50053,nodo2:50053,nodo3:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     networks:
       - imagen-net
 
