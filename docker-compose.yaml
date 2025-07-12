@@ -5,6 +5,8 @@ services:
       dockerfile: cliente/Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     depends_on:
       - nodo1
       - nodo2
