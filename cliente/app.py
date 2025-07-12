@@ -19,6 +19,13 @@ CARPETA_PROCESADOS = "procesados"
 os.makedirs(CARPETA_SUBIDOS, exist_ok=True)
 os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 
+NODOS_DISPONIBLES = [ # estaticos por ahora 
+    "nodo1:50052",
+    "nodo2:50052", 
+    "nodo3:50052",
+    "nodo4:50052"
+]
+
 @app.route("/")
 def index():
     return render_template("index.html")
