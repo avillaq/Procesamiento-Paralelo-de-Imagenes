@@ -3,7 +3,7 @@ import uuid
 from werkzeug.utils import secure_filename
 import logging
 
-from flask import Flask, render_template, request, jsonify, send_from_directory, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory, url_for, make_response, Response
 
 import grpc
 from proto import procesador_pb2
@@ -57,7 +57,9 @@ def index():
         except Exception as e:
             logger.error(f"Error obteniendo imagenes del usuario: {e}")
     return render_template("index.html", 
-                         imagenes=imagenes)
+                         imagenes=imagenes, 
+                         usuario_id=usuario_id,
+                         glusterfs_disponible=gfs is not None)
 
 @app.route("/resultado")
 def resultado():
@@ -130,17 +132,42 @@ def procesar_imagen():
                     )
                 except Exception as e:
                     logger.error(f"Error almacenando en GlusterFS: {e}")
-
-
             
-
-            return jsonify({
+            response_data = {}
+            if imagen_procesada_id and imagen_original_id:
+                response_data.update({
+                        "original": url_for("get_imagen_distribuida", usuario_id=usuario_id, imagen_id=imagen_original_id, _external=True),
+                        "final": url_for("get_imagen_distribuida", usuario_id=usuario_id, imagen_id=imagen_procesada_id, _external=True),
+                    })
+            else:
+                response_data.update({
                     "original": url_for("archivos_subidos", nombre_archivo=nombre_imagen, _external=True),
                     "final": url_for("archivos_procesados", nombre_archivo=nombre_final_imagen, _external=True),
                 })
+
+            response = make_response(jsonify(response_data))
+            response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
+            return response, 200
         else:
             return jsonify({"error": "Error en el procesamiento de la imagen: " + response.status}), 500
 
+@app.route("/usuario/<usuario_id>/imagen/<imagen_id>")
+def get_imagen_distribuida(usuario_id, imagen_id):
+    if not gfs:
+        return "Sistema de archivos distribuido no disponible", 503
+    
+    try:
+        imagen_data = gfs.get_imagen_distribuida(usuario_id, imagen_id)
+        
+        if imagen_data:
+            return Response(imagen_data, mimetype='image/jpeg')
+        else:
+            return "Imagen no encontrada en sistema distribuido", 404
+            
+    except Exception as e:
+        logger.error(f"Error sirviendo imagen distribuida: {e}")
+        return "Error accediendo al sistema distribuido", 500
+    
 @app.route("/cluster/health")
 def cluster_health():
     if not gfs:
