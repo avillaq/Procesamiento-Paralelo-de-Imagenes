@@ -24,13 +24,11 @@ os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 
 try:
     gfs = GlusterFS()
-    logger.info("Sistema de archivos distribuido GlusterFS inicializado")
 except Exception as e:
     logger.error(f"Error inicializando GlusterFS: {e}")
     gfs = None
 
 NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
-logger.info(f"Nodos conocidos: {NODOS_CONOCIDOS}")
 def encontrar_coordinador():
     for direccion in NODOS_CONOCIDOS:
         direccion_proc = direccion.replace(":50053", ":50052") 
@@ -50,7 +48,16 @@ def index():
     usuario_id = request.cookies.get("usuario_id")
     if not usuario_id:
         usuario_id = str(uuid.uuid4())
-    return render_template("index.html")
+
+    # lista de imagenes del usuario
+    imagenes = []
+    if gfs:
+        try:
+            imagenes = gfs.get_imagenes_usuario(usuario_id=usuario_id, limite=6)
+        except Exception as e:
+            logger.error(f"Error obteniendo imagenes del usuario: {e}")
+    return render_template("index.html", 
+                         imagenes=imagenes)
 
 @app.route("/resultado")
 def resultado():
