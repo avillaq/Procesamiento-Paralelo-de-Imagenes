@@ -67,6 +67,8 @@ def resultado():
 
 @app.route("/procesar", methods=["POST"])
 def procesar_imagen():
+    usuario_id = request.cookies.get('usuario_id', str(uuid.uuid4()))
+
     if "img" not in request.files:
         return jsonify({"error": "No se ha enviado ninguna imagen"}), 400
     
@@ -93,6 +95,17 @@ def procesar_imagen():
 
     with open(path_original, "rb") as f:
         data = f.read()
+
+    imagen_original_id = None
+    if gfs:
+        try:
+            imagen_original_id = gfs.guardar_imagen(
+                usuario_id=usuario_id,
+                imagen_data=data,
+                tipo_imagen="original",
+            )
+        except Exception as e:
+            logger.error(f"Error almacenando en GlusterFS: {e}")
 
     # se intenta encontrar un nodo coordinador
     coordinador = encontrar_coordinador()
