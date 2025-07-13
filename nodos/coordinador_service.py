@@ -41,22 +41,14 @@ class CoordinadorService:
             num_nodos = len(nodos_disponibles)
             partes = self.imagen_helper.dividir_imagen(img, num_nodos)
 
-            partes_procesadas = []
             partes_procesadas = self._procesar_partes_paralelo(partes, nodos_disponibles)
-            for i, pt in enumerate(partes):
-                nodo_objetivo = nodos_disponibles[i % len(nodos_disponibles)]
-                
-                # se procesa cion reintentos
-                resultado = self._procesar_parte_con_reintentos(pt, nodo_objetivo, nodos_disponibles, max_intentos=2)
-                
-                if resultado is None:
-                    return procesador_pb2.ImagenReply(
-                        status="error", 
-                        imagen_data=b"", 
-                        mensaje=f"Error procesando parte {i} despues de reintentos"
-                    )
-                
-                partes_procesadas.append(resultado)
+
+            if len(partes_procesadas) != len(partes):
+                return procesador_pb2.ImagenReply(
+                    status="error", 
+                    imagen_data=b"", 
+                    mensaje=f"Solo se procesaron {len(partes_procesadas)}/{len(partes)} partes"
+                )
 
             # se une todas las partes
             imagen_final_bytes = self.imagen_helper.unir_imagen(partes_procesadas)
