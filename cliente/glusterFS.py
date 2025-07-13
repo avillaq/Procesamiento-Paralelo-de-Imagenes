@@ -24,11 +24,6 @@ class GlusterFS:
             if not os.path.exists(self.mnt_punto):
                 raise Exception(f"Punto de montaje {self.mnt_punto} no existe")
             
-            # estadisticas
-            stat_info = os.statvfs(self.mnt_punto)
-            espacio_total_gb = (stat_info.f_blocks * stat_info.f_frsize) / (1024**3)
-            logger.info(f"Espacio total disponible: {espacio_total_gb:.2f} GB")
-            
         except Exception as e:
             logger.error(f"Error verificando GlusterFS: {e}")
             raise
@@ -256,14 +251,14 @@ class GlusterFS:
     
     def _get_gluster_info(self):
         """Obtiene informacion especifica del volumen glusterfs"""
-        try:
-            result = subprocess.run(['gluster', 'volume', 'info'], capture_output=True, text=True, timeout=10)
+        try: 
+            result = subprocess.run(['gluster', '--remote-host=gluster1', 'volume', 'info', 'gvol'], capture_output=True, text=True, timeout=10)
             
             if result.returncode == 0:
                 return {
                     "informacion_disponible": True,
                     "estado_volumen": "online",
-                    "salida": result.stdout.split('\n')[:10]
+                    "salida": result.stdout.split('\n')[:17]
                 }
             else:
                 return {
