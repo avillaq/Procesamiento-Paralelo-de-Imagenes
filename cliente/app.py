@@ -54,11 +54,15 @@ def index():
     if gfs:
         try:
             imagenes = gfs.get_imagenes_usuario(usuario_id=usuario_id, limite=6)
+            originales = gfs.get_imagenes_usuario(usuario_id, "original")
+            procesadas = gfs.get_imagenes_usuario(usuario_id, "procesada") 
+            total_imagenes = len(originales) + len(procesadas)
         except Exception as e:
             logger.error(f"Error obteniendo imagenes del usuario: {e}")
     return render_template("index.html", 
                          imagenes=imagenes, 
                          usuario_id=usuario_id,
+                         total_imagenes=total_imagenes,
                          glusterfs_disponible=gfs is not None)
 
 @app.route("/galeria")
@@ -73,6 +77,7 @@ def galeria():
         try:
             imagenes_originales = gfs.get_imagenes_usuario(usuario_id, "original")
             imagenes_procesadas = gfs.get_imagenes_usuario(usuario_id, "procesada")
+            total_imagenes = len(imagenes_originales) + len(imagenes_procesadas)
         except Exception as e:
             logger.error(f"Error obteniendo galería del usuario: {e}")
     
@@ -80,7 +85,8 @@ def galeria():
                          originales=imagenes_originales,
                          procesadas=imagenes_procesadas,
                          usuario_id=usuario_id,
-                         total_imagenes=len(imagenes_originales) + len(imagenes_procesadas))
+                         total_imagenes=total_imagenes
+                        )
 
 @app.route("/resultado")
 def resultado():
