@@ -17,9 +17,29 @@
     <header>
       <h1>Procesamiento Paralelo de Imagenes</h1>
       <p class="subtitle">Sube tu imagen</p>
+      
+      {% if imagenes %}
+      <div class="gallery-link">
+        <a href="{{ url_for('galeria') }}" class="btn gallery-nav-btn">Ver galeria ({{ total_imagenes }})</a>
+      </div>
+      {% endif %}
     </header>
 
     <main>
+      {% if imagenes %}
+      <section class="recent-images">
+        <h2>Imagenes Recientes</h2>
+        <div class="recent-grid">
+          {% for imagen in imagenes %}
+          <div class="recent-item">
+            <img src="{{ imagen.url }}" alt="Imagen reciente" loading="lazy">
+            <span class="image-badge {{ imagen.tipo }}">{{ imagen.tipo|title }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
       <form id="upload-form">
         <div class="upload-container">
           <div class="upload-area" id="uploadArea">
@@ -40,6 +60,11 @@
               <div class="upload-restrictions">
                 <p>Formatos permitidos: jpg, png, jpge, webp</p>
                 <p>Tamaño maximo: 4 MB</p>
+                {% if glusterfs_disponible %}
+                <p style="color: var(--success);">Almacenamiento distribuido activo</p>
+                {% else %}
+                <p style="color: #e74c3c;">Usando almacenamiento local</p>
+                {% endif %}
               </div>
             </div>
             <input id="file-upload" type="file" name="image" accept=".jpg,.png,.webp,.jpge" required />
