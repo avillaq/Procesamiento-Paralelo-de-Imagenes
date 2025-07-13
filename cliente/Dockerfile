@@ -8,6 +8,7 @@ COPY cliente/iniciar_cliente.sh /iniciar_cliente.sh
 
 RUN apt-get update && \
     apt-get install -y glusterfs-client && \
+    apt-get install -y glusterfs-server && \
     pip install --no-cache-dir -r requirements.txt && \
     python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. proto/procesador.proto
 
