@@ -1,13 +1,53 @@
 services:
+  gluster1:
+    image: gluster/gluster-centos:latest
+    hostname: gluster1
+    privileged: true
+    volumes:
+      - gluster1-brick:/data/brick1
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    networks:
+      - imagen-net
+    command: >
+      bash -c "
+        glusterd &&
+        sleep 10 &&
+        gluster peer probe gluster2 &&
+
+        gluster volume create gvol replica 2 gluster1:/data/brick1 gluster2:/data/brick1 force &&
+
+        gluster volume start gvol &&
+        gluster volume set gvol auth.allow '*' &&
+
+        #gluster volume info gvol &&
+        #gluster volume status gvol &&
+        tail -f /var/log/glusterfs/glusterd.log
+      "
+  gluster2:
+    image: gluster/gluster-centos:latest
+    hostname: gluster2
+    privileged: true
+    volumes:
+      - gluster2-brick:/data/brick1
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    networks:
+      - imagen-net
+    command: >
+      bash -c "
+        glusterd -N
+      "
   cliente:
     build:
       context: .
       dockerfile: cliente/Dockerfile
     ports:
       - "8080:8080"
+    privileged: true
     environment:
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     depends_on:
+      - gluster1
+      - gluster2
       - nodo1
       - nodo2
       - nodo3
@@ -66,6 +106,12 @@ services:
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
     networks:
       - imagen-net
+
+volumes:
+  gluster1-brick:
+    driver: local
+  gluster2-brick:
+    driver: local
 
 networks:
   imagen-net:
