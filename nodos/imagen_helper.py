@@ -82,7 +82,10 @@ class ImagenHelper():
             _, buf = cv2.imencode(".png", parte)
             parte_bytes = buf.tobytes()
 
-            with grpc.insecure_channel(nodo_direccion) as channel:
+            with grpc.insecure_channel(nodo_direccion, options=[
+                    ('grpc.max_receive_message_length', 20 * 1024 * 1024),  # 20MB
+                    ('grpc.max_send_message_length', 20 * 1024 * 1024)
+            ]) as channel:
                 stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
                 response = stub.ProcesarImagen(
                     procesador_pb2.ImagenRequest(data=parte_bytes),

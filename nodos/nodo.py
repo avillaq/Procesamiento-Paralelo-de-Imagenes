@@ -56,7 +56,10 @@ def serve():
     procesador = ProcesadorImagen(nodo_id, bully_service, coordinador_service, imagen_helper)
 
     # servidor de procesamiento de imagenes
-    server_procesamiento = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
+    server_procesamiento = grpc.server(futures.ThreadPoolExecutor(max_workers=4), options=[
+                                        ('grpc.max_receive_message_length', 20 * 1024 * 1024),  # 20MB
+                                        ('grpc.max_send_message_length', 20 * 1024 * 1024)]
+                                    )
     procesador_pb2_grpc.add_ProcesadorImagenServicer_to_server(procesador, server_procesamiento)
     server_procesamiento.add_insecure_port("[::]:" + "50052")
 

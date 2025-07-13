@@ -47,7 +47,7 @@ def get_url_base(request):
     if 'localhost' in request.host or '127.0.0.1' in request.host:
         return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
     else:
-        return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev/"
+        return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
     
 @app.route("/")
 def index():
@@ -121,8 +121,8 @@ def procesar_imagen():
     
     data = archivo_imagen.read()
     tamaño_mb = len(data) / (1024 * 1024)
-    if tamaño_mb > 4:
-        return jsonify({"error": "El tamaño de la imagen no debe exceder los 4 MB"}), 400
+    if tamaño_mb > 20:
+        return jsonify({"error": "El tamaño de la imagen no debe exceder los 20 MB"}), 400
     archivo_imagen.seek(0)
 
     nombre_imagen = str(uuid.uuid4()) + "-" + secure_filename(archivo_imagen.filename)
@@ -155,7 +155,10 @@ def procesar_imagen():
         return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
 
     logger.info(f"Enviando imagen a coordinador {coordinador} para procesamiento...")
-    with grpc.insecure_channel(coordinador) as channel:
+    with grpc.insecure_channel(coordinador, options=[
+            ('grpc.max_receive_message_length', 20 * 1024 * 1024),  # 20MB
+            ('grpc.max_send_message_length', 20 * 1024 * 1024)
+        ]) as channel:
         stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
         response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
         if response.status == "ok":
@@ -189,7 +192,7 @@ def procesar_imagen():
             response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
             return response, 200
         else:
-            return jsonify({"error": "Error en el procesamiento de la imagen: " + response.status}), 500
+            return jsonify({"error": "Error en el procesamiento de la imagen: " + response.mensaje}), 500
 
 @app.route("/usuario/<usuario_id>/imagen/<imagen_id>")
 def get_imagen_distribuida(usuario_id, imagen_id):
