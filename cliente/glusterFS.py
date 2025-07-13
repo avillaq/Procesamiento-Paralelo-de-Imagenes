@@ -24,6 +24,9 @@ class GlusterFS:
             if not os.path.exists(self.mnt_punto):
                 raise Exception(f"Punto de montaje {self.mnt_punto} no existe")
             
+            data = self._get_gluster_info()
+            if not data.get("informacion_disponible", False):
+                raise Exception("No se pudo obtener informacion del volumen GlusterFS")
         except Exception as e:
             logger.error(f"Error verificando GlusterFS: {e}")
             raise
