@@ -119,7 +119,22 @@ def procesar_imagen():
         if response.status == "ok":
             with open(path_final, "wb") as f:
                 f.write(response.imagen_data)
-                return jsonify({
+
+            imagen_procesada_id = None
+            if gfs:
+                try:
+                    imagen_procesada_id = gfs.guardar_imagen(
+                        usuario_id=usuario_id,
+                        imagen_data=response.imagen_data,
+                        tipo_imagen="procesada",
+                    )
+                except Exception as e:
+                    logger.error(f"Error almacenando en GlusterFS: {e}")
+
+
+            
+
+            return jsonify({
                     "original": url_for("archivos_subidos", nombre_archivo=nombre_imagen, _external=True),
                     "final": url_for("archivos_procesados", nombre_archivo=nombre_final_imagen, _external=True),
                 })
