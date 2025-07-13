@@ -145,8 +145,33 @@ services:
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     networks:
       - imagen-net
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoreo/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - imagen-net
+    depends_on:
+      - nodo1
+      - nodo2
+      - nodo3
+      - nodo4
+      - nodo5
 
 volumes:
+  prometheus-data:
   gluster1-brick:
     driver: local
   gluster2-brick:
