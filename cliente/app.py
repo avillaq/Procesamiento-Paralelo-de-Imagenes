@@ -9,6 +9,8 @@ import grpc
 from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 
+from glusterFS import GlusterFS
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,13 @@ CARPETA_PROCESADOS = "procesados"
 
 os.makedirs(CARPETA_SUBIDOS, exist_ok=True)
 os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
+
+try:
+    gfs = GlusterFS()
+    logger.info("Sistema de archivos distribuido GlusterFS inicializado")
+except Exception as e:
+    logger.error(f"Error inicializando GlusterFS: {e}")
+    gfs = None
 
 NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
 logger.info(f"Nodos conocidos: {NODOS_CONOCIDOS}")
