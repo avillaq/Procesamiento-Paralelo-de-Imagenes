@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import cv2
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from proto import procesador_pb2
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ class CoordinadorService:
             partes = self.imagen_helper.dividir_imagen(img, num_nodos)
 
             partes_procesadas = []
+            partes_procesadas = self._procesar_partes_paralelo(partes, nodos_disponibles)
             for i, pt in enumerate(partes):
                 nodo_objetivo = nodos_disponibles[i % len(nodos_disponibles)]
                 
@@ -71,6 +72,42 @@ class CoordinadorService:
                 mensaje=str(e)
             )
 
+    def _procesar_partes_paralelo(self, partes, nodos_disponibles):
+        """Procesa todas las partes en paralelo usando ThreadPoolExecutor"""
+        partes_procesadas = [None] * len(partes)
+        
+        max_workers = min(len(nodos_disponibles), 8) # 8 hilos max
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {}
+            
+            for i, pt in enumerate(partes):
+                nodo_objetivo = nodos_disponibles[i % len(nodos_disponibles)]
+                
+                future = executor.submit(
+                    self._procesar_parte_con_reintentos, 
+                    pt, 
+                    nodo_objetivo, 
+                    nodos_disponibles, 
+                )
+                future_to_index[future] = i
+            
+            # se recogen los resultados conforme van terminando
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    resultado = future.result(timeout=15.0)  # 15 segundos timeout
+                    if resultado is not None:
+                        partes_procesadas[index] = resultado
+                        logger.info(f"Parte {index} completada")
+                    else:
+                        logger.error(f"Parte {index} fallo despues de reintentos")
+                except Exception as e:
+                    logger.error(f"Error en parte {index}: {e}")
+        
+        # solo resultados validos
+        return [p for p in partes_procesadas if p is not None]
+    
     def _procesar_parte_con_reintentos(self, parte, nodo_objetivo, nodos_disponibles, max_intentos=2):
         """Procesa una parte con reintentos en diferentes nodos"""
 
