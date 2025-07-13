@@ -65,7 +65,7 @@ class CoordinadorService:
             )
 
     def _procesar_partes_paralelo(self, partes, nodos_disponibles):
-        """Procesa todas las partes en paralelo usando ThreadPoolExecutor"""
+        """Procesa todas las partes en paralelo"""
         partes_procesadas = [None] * len(partes)
         
         max_workers = min(len(nodos_disponibles), 8) # 8 hilos max

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p /mnt/almacenamiento_dist
-sleep 20
+sleep 25
 
 glusterd
 
