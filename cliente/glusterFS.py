@@ -195,13 +195,13 @@ class GlusterFS:
         
         return disponibilidad
     
-    def get_cluster_health(self):
+    def get_gluster_health(self):
         """Obtiene estado de salud completo dle sistema"""
         try:
             # estadisticas
             stat = os.statvfs(self.mnt_punto)
             espacio_total = stat.f_blocks * stat.f_frsize
-            espacio_libre = stat.f_available * stat.f_frsize
+            espacio_libre = stat.f_bavail * stat.f_frsize
             espacio_usado = espacio_total - espacio_libre
             
             # toral archivos
