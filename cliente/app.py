@@ -3,7 +3,7 @@ import uuid
 from werkzeug.utils import secure_filename
 import logging
 
-from flask import Flask, render_template, request, jsonify, send_from_directory, url_for, make_response, Response
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, Response
 
 import grpc
 from proto import procesador_pb2
@@ -45,9 +45,9 @@ def encontrar_coordinador():
 
 def get_url_base(request):
     if 'localhost' in request.host or '127.0.0.1' in request.host:
-        return f"http://{request.host}"
+        return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
     else:
-        return f"https://{request.host}"
+        return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev/"
     
 @app.route("/")
 def index():
@@ -83,6 +83,13 @@ def galeria():
         try:
             imagenes_originales = gfs.get_imagenes_usuario(usuario_id, "original")
             imagenes_procesadas = gfs.get_imagenes_usuario(usuario_id, "procesada")
+            base_url = get_url_base(request)
+            for imagen in imagenes_originales:
+                if imagen.get('imagen_id'):
+                    imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
+            for imagen in imagenes_procesadas:
+                if imagen.get('imagen_id'):
+                    imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
             total_imagenes = len(imagenes_originales) + len(imagenes_procesadas)
         except Exception as e:
             logger.error(f"Error obteniendo galería del usuario: {e}")
@@ -165,17 +172,17 @@ def procesar_imagen():
                     )
                 except Exception as e:
                     logger.error(f"Error almacenando en GlusterFS: {e}")
-            
+            base_url = get_url_base(request)
             response_data = {}
             if imagen_procesada_id and imagen_original_id:
                 response_data.update({
-                        "original": url_for("get_imagen_distribuida", usuario_id=usuario_id, imagen_id=imagen_original_id, _external=True),
-                        "final": url_for("get_imagen_distribuida", usuario_id=usuario_id, imagen_id=imagen_procesada_id, _external=True),
-                    })
+                    "original": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_original_id}",
+                    "final": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_procesada_id}",
+                })
             else:
                 response_data.update({
-                    "original": url_for("archivos_subidos", nombre_archivo=nombre_imagen, _external=True),
-                    "final": url_for("archivos_procesados", nombre_archivo=nombre_final_imagen, _external=True),
+                    "original": f"{base_url}/subidos/{nombre_imagen}",
+                    "final": f"{base_url}/procesados/{nombre_final_imagen}",
                 })
 
             response = make_response(jsonify(response_data))
