@@ -1,6 +1,7 @@
 services:
   gluster1:
     image: gluster/gluster-centos:latest
+    container_name: gluster1
     hostname: gluster1
     privileged: true
     volumes:
@@ -11,10 +12,10 @@ services:
     command: >
       bash -c "
         glusterd &&
-        sleep 10 &&
+        sleep 15 &&
         gluster peer probe gluster2 &&
-
-        gluster volume create gvol replica 2 gluster1:/data/brick1 gluster2:/data/brick1 force &&
+        gluster peer probe gluster3 &&
+        gluster volume create gvol replica 3 gluster1:/data/brick1 gluster2:/data/brick1 gluster3:/data/brick1 force &&
 
         gluster volume start gvol &&
         gluster volume set gvol auth.allow '*' &&
@@ -25,6 +26,7 @@ services:
       "
   gluster2:
     image: gluster/gluster-centos:latest
+    container_name: gluster2
     hostname: gluster2
     privileged: true
     volumes:
@@ -36,22 +38,41 @@ services:
       bash -c "
         glusterd -N
       "
+
+  gluster3:
+    image: gluster/gluster-centos:latest
+    container_name: gluster3
+    hostname: gluster3
+    privileged: true
+    volumes:
+      - gluster3-brick:/data/brick1
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    networks:
+      - imagen-net
+    command: >
+      bash -c "
+        glusterd -N
+      "
+
   cliente:
     build:
       context: .
       dockerfile: cliente/Dockerfile
+    container_name: cliente
     ports:
       - "8080:8080"
     privileged: true
     environment:
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     depends_on:
       - gluster1
       - gluster2
+      - gluster3
       - nodo1
       - nodo2
       - nodo3
       - nodo4
+      - nodo5
     networks:
       - imagen-net
 
@@ -59,12 +80,13 @@ services:
     build:
       context: .
       dockerfile: nodos/Dockerfile
+    container_name: nodo1
     ports:
       - "50052:50052"  # procesamiento
       - "50053:50053"  # bully
     environment:
       - NODO_ID=1
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     networks:
       - imagen-net
 
@@ -72,12 +94,13 @@ services:
     build:
       context: .
       dockerfile: nodos/Dockerfile
+    container_name: nodo2
     ports:
       - "50054:50052"  # procesamiento
       - "50055:50053"  # bully
     environment:
       - NODO_ID=2
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     networks:
       - imagen-net
 
@@ -85,12 +108,13 @@ services:
     build:
       context: .
       dockerfile: nodos/Dockerfile
+    container_name: nodo3
     ports:
       - "50056:50052"  # procesamiento
       - "50057:50053"  # bully
     environment:
       - NODO_ID=3
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     networks:
       - imagen-net
 
@@ -98,12 +122,27 @@ services:
     build:
       context: .
       dockerfile: nodos/Dockerfile
+    container_name: nodo4
     ports:
       - "50058:50052"  # procesamiento
       - "50059:50053"  # bully
     environment:
       - NODO_ID=4
-      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
+    networks:
+      - imagen-net
+  
+  nodo5:
+    build:
+      context: .
+      dockerfile: nodos/Dockerfile
+    container_name: nodo5
+    ports:
+      - "50060:50052"  # procesamiento
+      - "50061:50053"  # bully
+    environment:
+      - NODO_ID=5
+      - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
     networks:
       - imagen-net
 
@@ -111,6 +150,8 @@ volumes:
   gluster1-brick:
     driver: local
   gluster2-brick:
+    driver: local
+  gluster3-brick:
     driver: local
 
 networks:
