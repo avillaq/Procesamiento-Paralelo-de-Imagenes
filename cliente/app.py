@@ -43,6 +43,12 @@ def encontrar_coordinador():
             continue
     return None
 
+def get_url_base(request):
+    if 'localhost' in request.host or '127.0.0.1' in request.host:
+        return f"http://{request.host}"
+    else:
+        return f"https://{request.host}"
+    
 @app.route("/")
 def index():
     usuario_id = request.cookies.get("usuario_id")
@@ -54,15 +60,15 @@ def index():
     if gfs:
         try:
             imagenes = gfs.get_imagenes_usuario(usuario_id=usuario_id, limite=6)
-            originales = gfs.get_imagenes_usuario(usuario_id, "original")
-            procesadas = gfs.get_imagenes_usuario(usuario_id, "procesada") 
-            total_imagenes = len(originales) + len(procesadas)
+            base_url = get_url_base(request)
+            for imagen in imagenes:
+                if imagen.get('imagen_id'):
+                    imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
         except Exception as e:
             logger.error(f"Error obteniendo imagenes del usuario: {e}")
     return render_template("index.html", 
                          imagenes=imagenes, 
                          usuario_id=usuario_id,
-                         total_imagenes=total_imagenes,
                          glusterfs_disponible=gfs is not None)
 
 @app.route("/galeria")
