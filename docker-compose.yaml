@@ -154,7 +154,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoreo/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -170,8 +170,27 @@ services:
       - nodo4
       - nodo5
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoreo/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoreo/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - imagen-net
+    depends_on:
+      - prometheus
+
 volumes:
   prometheus-data:
+  grafana-data:
   gluster1-brick:
     driver: local
   gluster2-brick:
