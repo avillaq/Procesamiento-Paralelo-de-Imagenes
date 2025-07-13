@@ -47,6 +47,9 @@ def encontrar_coordinador():
 
 @app.route("/")
 def index():
+    usuario_id = request.cookies.get("usuario_id")
+    if not usuario_id:
+        usuario_id = str(uuid.uuid4())
     return render_template("index.html")
 
 @app.route("/resultado")
@@ -103,6 +106,18 @@ def procesar_imagen():
         else:
             return jsonify({"error": "Error en el procesamiento de la imagen: " + response.status}), 500
 
+@app.route("/cluster/health")
+def cluster_health():
+    if not gfs:
+        return jsonify({"error": "Sistema de archivos distribuido no disponible"}), 503
+    
+    try:
+        data = gfs.get_gluster_health()
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error obteniendo estado del cluster: {e}")
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/subidos/<nombre_archivo>")
 def archivos_subidos(nombre_archivo):
     return send_from_directory(CARPETA_SUBIDOS, nombre_archivo)
