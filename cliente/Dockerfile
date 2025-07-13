@@ -14,6 +14,6 @@ RUN apt-get update && \
 
 COPY cliente/ .
 
-EXPOSE 8080
 RUN chmod +x /iniciar_cliente.sh
+EXPOSE 8080
 ENTRYPOINT ["/iniciar_cliente.sh"]
