@@ -61,6 +61,27 @@ def index():
                          usuario_id=usuario_id,
                          glusterfs_disponible=gfs is not None)
 
+@app.route("/galeria")
+def galeria():
+    usuario_id = request.cookies.get("usuario_id", str(uuid.uuid4()))
+    
+    # todas las imagenes del usuario  
+    imagenes_originales = []
+    imagenes_procesadas = []
+    
+    if gfs:
+        try:
+            imagenes_originales = gfs.get_imagenes_usuario(usuario_id, "original")
+            imagenes_procesadas = gfs.get_imagenes_usuario(usuario_id, "procesada")
+        except Exception as e:
+            logger.error(f"Error obteniendo galería del usuario: {e}")
+    
+    return render_template("galeria.html", 
+                         originales=imagenes_originales,
+                         procesadas=imagenes_procesadas,
+                         usuario_id=usuario_id,
+                         total_imagenes=len(imagenes_originales) + len(imagenes_procesadas))
+
 @app.route("/resultado")
 def resultado():
     original = request.args.get("original", "")
