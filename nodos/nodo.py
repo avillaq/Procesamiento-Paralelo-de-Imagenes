@@ -11,7 +11,7 @@ from proto import bully_pb2_grpc
 from bully_service import BullyService
 from coordinador_service import CoordinadorService
 from imagen_helper import ImagenHelper
-from metricas_nodo import MetricasServer
+from monitoreo.metricas_nodo import MetricasServer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -61,10 +61,10 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
             duracion = time.time() - inicio
             estado = "exito" if resultado.status == "ok" else "error"
 
-            self.metrics_collector.track_procesamiento_imagen(
+            self.recolector_metricas.track_procesamiento_imagen(
                 duracion, estado, tamano_imagen, "escala grises"
             )
-            self.metrics_collector.track_peticion_grpc(
+            self.recolector_metricas.track_peticion_grpc(
                 "ProcesarImagen", duracion, estado
             )
             
@@ -72,11 +72,11 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
         
         except Exception as e:
             duracion = time.time() - inicio
-            self.metrics_collector.track_procesamiento_imagen(
+            self.recolector_metricas.track_procesamiento_imagen(
                 duracion, "error", "desconocido", "escala grises"
             )
             
-            self.metrics_collector.track_peticion_grpc(
+            self.recolector_metricas.track_peticion_grpc(
                 "ProcesarImagen", duracion, "error"
             )
 
