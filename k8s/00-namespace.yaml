@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: imagen-processing
+  labels:
+    app: sistema-imagen-procesamiento
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: imagen-processing
+data:
+  # nodos conocidos
+  NODOS_CONOCIDOS: "nodo-service-1.imagen-processing.svc.cluster.local:50053,nodo-service-2.imagen-processing.svc.cluster.local:50053,nodo-service-3.imagen-processing.svc.cluster.local:50053,nodo-service-4.imagen-processing.svc.cluster.local:50053,nodo-service-5.imagen-processing.svc.cluster.local:50053"
+  
+  # Prometheus
+  PROMETHEUS_ENABLED: "true"
+  PROMETHEUS_PORT: "8000"
+  
+  # glusterFS
+  GLUSTER_VOLUME: "gvol"
+  GLUSTER_MOUNT_POINT: "/mnt/almacenamiento_dist"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: imagen-processing
+type: Opaque
+data:
+  # credenciales Grafana
+  grafana-admin-password: YWRtaW4xMjM=  # admin123
