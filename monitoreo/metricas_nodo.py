@@ -77,14 +77,14 @@ class RecolectorMetricas:
         )
         
         # métricas del sistema
-        self.uso_cpu = Gauge(
+        self.porcentaje_uso_cpu = Gauge(
             'porcentaje_uso_cpu',
             'Porcentaje de uso de CPU',
             ['nodo_id'],
             registry=self.registro
         )
         
-        self.uso_memoria = Gauge(
+        self.porcentaje_uso_memoria = Gauge(
             'porcentaje_uso_memoria',
             'Porcentaje de uso de memoria',
             ['nodo_id'],
