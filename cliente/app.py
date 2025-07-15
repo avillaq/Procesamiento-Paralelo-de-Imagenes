@@ -1,5 +1,6 @@
 import os
 import uuid
+import time
 from werkzeug.utils import secure_filename
 import logging
 
@@ -10,6 +11,7 @@ from proto import procesador_pb2
 from proto import procesador_pb2_grpc
 
 from glusterFS import GlusterFS
+from monitoreo.metricas_cliente import MetricasServer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,14 +24,30 @@ CARPETA_PROCESADOS = "procesados"
 os.makedirs(CARPETA_SUBIDOS, exist_ok=True)
 os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 
+metricas_cliente_server = MetricasServer(puerto=8001)
+recolector_metricas_cliente = None
+
+try:
+    metricas_cliente_server.start()
+    recolector_metricas_cliente = metricas_cliente_server.get_recolector()
+    logger.info("Servidor de métricas iniciado exitosamente")
+except Exception as e:
+    logger.error(f" Error iniciando servidor de métricas: {e}")
+
 try:
     gfs = GlusterFS()
+    if recolector_metricas_cliente:
+        recolector_metricas_cliente.actualizar_estado_glusterfs(True)
+        recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "exito")
 except Exception as e:
     logger.error(f"Error inicializando GlusterFS: {e}")
     gfs = None
+    if recolector_metricas_cliente:
+        recolector_metricas_cliente.actualizar_estado_glusterfs(False)
+        recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "error")
 
-NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
 def encontrar_coordinador():
+    NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
     for direccion in NODOS_CONOCIDOS:
         direccion_proc = direccion.replace(":50053", ":50052") 
         try:
