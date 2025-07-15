@@ -22,7 +22,7 @@ scrape_configs:
   - job_name: 'cliente-flask'
     static_configs:
       - targets:
-          - 'cliente:8001'
+          - 'cliente:8000'
     scrape_interval: 15s
     metrics_path: /metricas
   
