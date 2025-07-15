@@ -18,4 +18,5 @@ message ImagenReply {
 message EstadoRequest {}
 message EstadoReply {
   bool es_coordinador = 1;
+  int32 nodo_id = 2;
 }
