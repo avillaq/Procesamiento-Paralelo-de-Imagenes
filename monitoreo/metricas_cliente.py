@@ -202,7 +202,7 @@ class MetricasHandler(BaseHTTPRequestHandler):
 class MetricasServer:
     """Servidor de métricas para el cliente Flask"""
     
-    def __init__(self, puerto=8001):
+    def __init__(self, puerto=8000):
         self.puerto = puerto
         self.server = None
         self.server_thread = None
