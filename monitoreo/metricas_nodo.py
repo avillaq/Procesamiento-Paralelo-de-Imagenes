@@ -281,7 +281,7 @@ class MetricasServer:
             self.server_thread = threading.Thread(target=self._run_server, daemon=True)
             self.running = True
             self.server_thread.start()
-            logger.info(f"Servidor de metrias iniciado en puerto {self.puerto}")
+            logger.info(f"Servidor de metricas de nodos iniciado en puerto {self.puerto}")
         except Exception as e:
             logger.error(f"Error iniciando servidor de métricas: {e}")
             raise
@@ -290,10 +290,10 @@ class MetricasServer:
         """Ejecuta servidor HTTP"""
         while self.running:
             try:
-                self.server.serve_request()
+                self.server.handle_request()
             except Exception as e:
                 if self.running:
-                    logger.error(f"Error en servidor de métricas: {e}")
+                    logger.error(f"Error en servidor de métricas de nodos: {e}")
                 break
     
     def stop(self):
@@ -301,7 +301,7 @@ class MetricasServer:
         self.running = False
         if self.server:
             self.server.server_close()
-        logger.info("Servidor de métricas detenido")
+        logger.info("Servidor de métricas de nodos detenido")
 
     def get_recolector(self):
         """Obtiene el recolector de métricas"""
