@@ -88,22 +88,7 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        # métricas del sistema de archivos distribuido
-        self.total_operaciones_glusterfs = Counter(
-            'total_operaciones_glusterfs',
-            'Operaciones en sistema de archivos distribuido',
-            ['operation', 'estado'],
-            registry=self.registro
-        )
-        
-        self.total_archivos_almacenados = Gauge(
-            'total_archivos_almacenados',
-            'Total de archivos en almacenamiento distribuido',
-            ['usuario_id', 'tipo_archivo'],
-            registry=self.registro
-        )
-
-         # métricas del sistema
+        # métricas del sistema
         self.uso_cpu = Gauge(
             'porcentaje_uso_cpu',
             'Uso de CPU del nodo',
@@ -235,24 +220,6 @@ class RecolectorMetricas:
                 metodo=metodo
             ).observe(duracion)
 
-    # Metodos para sistema de archivos distribuido
-    def track_operacion_glusterfs(self, operation, estado = "exito"):
-        """Registra operacion en almacenamiento distribuido"""
-        with self._lock:
-            self.total_operaciones_glusterfs.labels(
-                operation=operation,
-                estado=estado
-            ).inc()
-
-    def actualizar_metricas_almacenamiento(self, archivo_usuario_tipo):
-        """Actualiza métricas de almacenamiento"""
-        with self._lock:
-            for (usuario_id, tipo_archivo), count in archivo_usuario_tipo.items():
-                self.total_archivos_almacenados.labels(
-                    usuario_id=usuario_id,
-                    tipo_archivo=tipo_archivo
-                ).set(count)
-    
     def get_metricas(self):
         """Metricas"""
         return generate_latest(self.registro)
