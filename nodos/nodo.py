@@ -36,7 +36,7 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
                 time.time() - inicio, 
                 "exito"
             )
-            return procesador_pb2.EstadoReply(es_coordinador=es_coordinador)
+            return procesador_pb2.EstadoReply(es_coordinador=es_coordinador, nodo_id=self.nodo_id)
         except Exception as e:
             self.recolector_metricas_nodo.track_peticion_grpc(
                 "EstadoNodo", 
