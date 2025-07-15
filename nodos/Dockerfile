@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY nodos/requirements.txt .
 COPY proto/ ./proto/
+COPY monitoreo/ ./monitoreo/
 
 RUN pip install --no-cache-dir -r requirements.txt && \
     python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. proto/procesador.proto && \
