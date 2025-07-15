@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'default'
+  - name: 'sistema-distribuido'
     orgId: 1
-    folder: ''
+    folder: 'Sistema Distribuido'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10
