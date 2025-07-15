@@ -17,12 +17,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
-    def __init__(self, nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas):
+    def __init__(self, nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas_nodo):
         self.nodo_id = nodo_id
         self.bully_service = bully_service
         self.coordinador_service = coordinador_service
         self.imagen_helper = imagen_helper
-        self.recolector_metricas = recolector_metricas
+        self.recolector_metricas_nodo = recolector_metricas_nodo
     
     # implementacion
     def EstadoNodo(self, request, context):
@@ -31,14 +31,14 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
 
         try:
             es_coordinador = self.bully_service.es_coordinador
-            self.recolector_metricas.track_peticion_grpc(
+            self.recolector_metricas_nodo.track_peticion_grpc(
                 "EstadoNodo", 
                 time.time() - inicio, 
                 "exito"
             )
             return procesador_pb2.EstadoReply(es_coordinador=es_coordinador)
         except Exception as e:
-            self.recolector_metricas.track_peticion_grpc(
+            self.recolector_metricas_nodo.track_peticion_grpc(
                 "EstadoNodo", 
                 time.time() - inicio, 
                 "error"
@@ -61,10 +61,10 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
             duracion = time.time() - inicio
             estado = "exito" if resultado.status == "ok" else "error"
 
-            self.recolector_metricas.track_procesamiento_imagen(
+            self.recolector_metricas_nodo.track_procesamiento_imagen(
                 duracion, estado, tamano_imagen, "escala grises"
             )
-            self.recolector_metricas.track_peticion_grpc(
+            self.recolector_metricas_nodo.track_peticion_grpc(
                 "ProcesarImagen", duracion, estado
             )
             
@@ -72,11 +72,11 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
         
         except Exception as e:
             duracion = time.time() - inicio
-            self.recolector_metricas.track_procesamiento_imagen(
+            self.recolector_metricas_nodo.track_procesamiento_imagen(
                 duracion, "error", "desconocido", "escala grises"
             )
             
-            self.recolector_metricas.track_peticion_grpc(
+            self.recolector_metricas_nodo.track_peticion_grpc(
                 "ProcesarImagen", duracion, "error"
             )
 
@@ -103,17 +103,17 @@ def serve():
     nodos_conocidos = [node.strip() for node in nodos_conocidos if node.strip()]
 
     # servidor de métricas
-    metricas_server = MetricasServer(nodo_id)
-    metricas_server.start()
-    recolector_metricas = metricas_server.get_recolector()
+    metricas_nodo_server = MetricasServer(nodo_id)
+    metricas_nodo_server.start()
+    recolector_metricas_nodo = metricas_nodo_server.get_recolector()
 
     # servicios
-    bully_service = BullyService(nodo_id, nodos_conocidos, recolector_metricas)
-    imagen_helper = ImagenHelper(nodo_id, recolector_metricas)
-    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper, recolector_metricas)
+    bully_service = BullyService(nodo_id, nodos_conocidos, recolector_metricas_nodo)
+    imagen_helper = ImagenHelper(nodo_id, recolector_metricas_nodo)
+    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper, recolector_metricas_nodo)
 
     # servicio principal
-    procesador = ProcesadorImagen(nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas)
+    procesador = ProcesadorImagen(nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas_nodo)
 
     # servidor de procesamiento de imagenes
     server_procesamiento = grpc.server(futures.ThreadPoolExecutor(max_workers=4), options=[
@@ -142,7 +142,7 @@ def serve():
     except KeyboardInterrupt:
         logger.info(f"Deteniendo nodo {nodo_id}...")
         bully_service.detener_servicios()
-        metricas_server.stop()
+        metricas_nodo_server.stop()
         server_procesamiento.stop(0)
         server_bully.stop(0)
 

@@ -9,7 +9,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 logger = logging.getLogger(__name__)
 
 class RecolectorMetricas:
-    """Recolector de métricas"""
+    """Recolector de métricas para los nodos"""
     
     def __init__(self, nodo_id=None):
         self.nodo_id = nodo_id
