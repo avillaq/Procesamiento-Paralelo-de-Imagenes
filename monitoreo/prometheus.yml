@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # nodos de procesamiento
+  - job_name: 'nodos-procesamiento'
+    static_configs:
+      - targets:
+          - 'nodo1:8000'
+          - 'nodo2:8000'
+          - 'nodo3:8000'
+          - 'nodo4:8000'
+          - 'nodo5:8000'
+    scrape_interval: 10s
+    metrics_path: /metricas
+    
+  # cliente Flask
+  - job_name: 'cliente-flask'
+    static_configs:
+      - targets:
+          - 'cliente:8001'
+    scrape_interval: 15s
+    metrics_path: /metricas
+  
+  - job_name: 'prometheus-self'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s

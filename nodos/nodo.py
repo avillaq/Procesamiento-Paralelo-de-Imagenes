@@ -108,9 +108,9 @@ def serve():
     recolector_metricas_nodo = metricas_nodo_server.get_recolector()
 
     # servicios
-    bully_service = BullyService(nodo_id, nodos_conocidos, recolector_metricas_nodo)
-    imagen_helper = ImagenHelper(nodo_id, recolector_metricas_nodo)
-    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper, recolector_metricas_nodo)
+    bully_service = BullyService(nodo_id, nodos_conocidos)
+    imagen_helper = ImagenHelper(nodo_id)
+    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper)
 
     # servicio principal
     procesador = ProcesadorImagen(nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas_nodo)

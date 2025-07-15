@@ -25,7 +25,7 @@ CARPETA_PROCESADOS = "procesados"
 os.makedirs(CARPETA_SUBIDOS, exist_ok=True)
 os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 
-metricas_cliente_server = MetricasServer(puerto=8001)
+metricas_cliente_server = MetricasServer(puerto=8000)
 recolector_metricas_cliente = None
 
 try:
@@ -342,4 +342,4 @@ def cleanup():
 atexit.register(cleanup)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True, use_reloader=False)

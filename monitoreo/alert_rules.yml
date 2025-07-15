@@ -1,0 +1,79 @@
+groups:
+  - name: sistema_distribuido_alerts
+    rules:
+      # Alertas de nodos
+      - alert: NodoFuera
+        expr: up{job="nodos-procesamiento"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nodo de procesamiento fuera de línea"
+          description: "El nodo {{ $labels.instance }} ha estado fuera de línea por más de 30 segundos"
+      
+      - alert: CoordinadorCambiado
+        expr: increase(total_cambios_coordinador[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cambio de coordinador detectado"
+          description: "Ha habido {{ $value }} cambios de coordinador en los últimos 5 minutos"
+      
+      # Alertas de procesamiento
+      - alert: ErroresProcesamiento
+        expr: rate(total_imagenes_procesadas{estado="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alto ratio de errores en procesamiento"
+          description: "Ratio de errores: {{ $value | humanizePercentage }}"
+      
+      - alert: TiempoProcesamiento
+        expr: histogram_quantile(0.95, rate(duracion_procesamiento_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tiempo de procesamiento alto"
+          description: "El 95% de las imágenes tardan más de 30 segundos en procesarse"
+      
+      # Alertas de almacenamiento
+      - alert: ErroresGlusterFS
+        expr: rate(total_operaciones_glusterfs{estado="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Errores en GlusterFS"
+          description: "Alto ratio de errores en operaciones de GlusterFS"
+      
+      # Alertas de cluster
+      - alert: NodosInsuficientes
+        expr: nodos_activos < 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nodos insuficientes en el cluster"
+          description: "Solo {{ $value }} nodos activos, mínimo requerido: 3"
+
+      # Alertas adicionales útiles
+      - alert: CpuAlto
+        expr: porcentaje_uso_cpu > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso alto de CPU"
+          description: "Nodo {{ $labels.nodo_id }} con CPU al {{ $value }}%"
+
+      - alert: MemoriaAlta
+        expr: porcentaje_uso_memoria > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso alto de memoria"
+          description: "Nodo {{ $labels.nodo_id }} con memoria al {{ $value }}%"

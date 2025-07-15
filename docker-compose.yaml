@@ -61,6 +61,7 @@ services:
     container_name: cliente
     ports:
       - "8080:8080"
+      - "8000:8000"
     privileged: true
     environment:
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -84,6 +85,7 @@ services:
     ports:
       - "50052:50052"  # procesamiento
       - "50053:50053"  # bully
+      - "8001:8000"
     environment:
       - NODO_ID=1
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -98,6 +100,7 @@ services:
     ports:
       - "50054:50052"  # procesamiento
       - "50055:50053"  # bully
+      - "8002:8000"
     environment:
       - NODO_ID=2
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -112,6 +115,7 @@ services:
     ports:
       - "50056:50052"  # procesamiento
       - "50057:50053"  # bully
+      - "8003:8000"
     environment:
       - NODO_ID=3
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -126,6 +130,7 @@ services:
     ports:
       - "50058:50052"  # procesamiento
       - "50059:50053"  # bully
+      - "8004:8000"
     environment:
       - NODO_ID=4
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -140,6 +145,7 @@ services:
     ports:
       - "50060:50052"  # procesamiento
       - "50061:50053"  # bully
+      - "8005:8000"
     environment:
       - NODO_ID=5
       - NODOS_CONOCIDOS=nodo1:50053,nodo2:50053,nodo3:50053,nodo4:50053,nodo5:50053
@@ -154,6 +160,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoreo/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoreo/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -161,6 +168,8 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=15d' 
+      - '--web.enable-admin-api'
     networks:
       - imagen-net
     depends_on:
@@ -169,6 +178,7 @@ services:
       - nodo3
       - nodo4
       - nodo5
+      - cliente
 
   grafana:
     image: grafana/grafana:latest
@@ -179,6 +189,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true 
+      - GF_AUTH_ANONYMOUS_ENABLED=true  
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoreo/grafana/provisioning:/etc/grafana/provisioning

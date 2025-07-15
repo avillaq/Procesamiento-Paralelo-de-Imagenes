@@ -1,0 +1,209 @@
+{
+  "id": null,
+  "title": "Sistema Distribuido - Procesamiento de Imágenes",
+  "description": "Monitoreo completo del sistema distribuido",
+  "tags": ["sistema-distribuido", "procesamiento-imagenes"],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Estado del Cluster",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nodos_activos",
+            "legendFormat": "Nodos Activos",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 3},
+                {"color": "green", "value": 4}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Coordinador Actual",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "coordinador_actual_nodo_id",
+            "legendFormat": "Coordinador",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "value"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Imágenes Procesadas por Segundo",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(total_imagenes_procesadas[5m])",
+            "legendFormat": "{{nodo_id}} - {{estado}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "unit": "ops",
+            "label": "Imágenes/segundo"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Tiempo de Procesamiento (Percentiles)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(duracion_procesamiento_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "unit": "s",
+            "label": "Tiempo (segundos)"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Uso de CPU por Nodo",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "porcentaje_uso_cpu",
+            "legendFormat": "Nodo {{nodo_id}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "unit": "percent",
+            "max": 100,
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Uso de Memoria por Nodo",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "porcentaje_uso_memoria",
+            "legendFormat": "Nodo {{nodo_id}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "unit": "percent",
+            "max": 100,
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Elecciones Bully",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(total_elecciones_bully[5m])",
+            "legendFormat": "{{nodo_id}} - {{resultado}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Estado de GlusterFS",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "estado_glusterfs",
+            "legendFormat": "GlusterFS",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"options": {"0": {"text": "Offline"}}, "type": "value"},
+              {"options": {"1": {"text": "Online"}}, "type": "value"}
+            ],
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Peticiones HTTP del Cliente",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(total_peticiones_http[5m])",
+            "legendFormat": "{{metodo}} {{endpoint}} ({{codigo_estado}})",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 18, "x": 6, "y": 24}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+}
