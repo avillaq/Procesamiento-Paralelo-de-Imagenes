@@ -57,13 +57,6 @@ class RecolectorMetricas:
             ['operacion', 'estado'],
             registry=self.registro
         )
-
-        self.total_archivos_almacenados = Gauge(
-            'total_archivos_almacenados',
-            'Total de archivos en almacenamiento distribuido',
-            ['usuario_id', 'tipo_archivo'],
-            registry=self.registro
-        )
         
         self.estado_glusterfs = Gauge(
             'estado_glusterfs',
@@ -141,15 +134,6 @@ class RecolectorMetricas:
         """Actualiza estado de GlusterFS"""
         with self._lock:
             self.estado_glusterfs.set(1 if disponible else 0)
-
-    def actualizar_metricas_almacenamiento(self, archivo_usuario_tipo):
-        """Actualiza métricas de almacenamiento"""
-        with self._lock:
-            for (usuario_id, tipo_archivo), count in archivo_usuario_tipo.items():
-                self.total_archivos_almacenados.labels(
-                    usuario_id=usuario_id,
-                    tipo_archivo=tipo_archivo
-                ).set(count)
     
     def actualizar_coordinadores(self, numero_disponibles):
         """Actualiza número de coordinadores disponibles"""
