@@ -42,6 +42,14 @@ class RecolectorMetricas:
             buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
             registry=self.registro
         )
+
+        self.duracion_procesamiento = Histogram(
+            'duracion_procesamiento',
+            'Tiempo de procesamiento de imagenes',
+            ['tamano_mb', 'tipo_procesamiento'],
+            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
+            registry=self.registro,
+        )
         
         # usuarios
         self.sesiones_concurrentes = Gauge(
@@ -64,17 +72,17 @@ class RecolectorMetricas:
             registry=self.registro
         )
 
-        # métricas de coordinación
+        # métricas de coordinación (bully)
         self.tiempo_busqueda_coordinador = Histogram(
             'tiempo_busqueda_coordinador_segundos',
             'Tiempo para encontrar coordinador',
             buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
             registry=self.registro
         )
-        
-        self.coordinadores_disponibles = Gauge(
-            'coordinadores_disponibles',
-            'Número de coordinadores disponibles',
+
+        self.coordinador_actual = Gauge(
+            'coordinador_actual_nodo_id',
+            'ID del coordinador actual',
             registry=self.registro
         )
         
@@ -121,6 +129,14 @@ class RecolectorMetricas:
             self.total_imagenes_subidas.labels(estado=estado).inc()
             if estado == "exito":
                 self.tamano_imagenes.observe(tamano_mb)
+
+    def track_procesamiento_imagen(self, duracion, tamano_mb, tipo_procesamiento = "escala grises"):
+        """Finaliza tracking de procesamiento de imagen"""
+        with self._lock:           
+            self.duracion_procesamiento.labels(
+                tamano_mb=tamano_mb,
+                tipo_procesamiento=tipo_procesamiento
+            ).observe(duracion)
     
     def track_operacion_glusterfs(self, operacion, estado="exito"):
         """Registra operación en GlusterFS"""
@@ -135,10 +151,10 @@ class RecolectorMetricas:
         with self._lock:
             self.estado_glusterfs.set(1 if disponible else 0)
     
-    def actualizar_coordinadores(self, numero_disponibles):
-        """Actualiza número de coordinadores disponibles"""
+    def actualizar_coordinador(self, coordinador_id):
+        """Actualiza informacion del coordinador"""
         with self._lock:
-            self.coordinadores_disponibles.set(numero_disponibles)
+            self.coordinador_actual.set(coordinador_id)
     
     def track_tiempo_coordinador(self, duracion):
         """Registra tiempo de búsqueda de coordinador"""
