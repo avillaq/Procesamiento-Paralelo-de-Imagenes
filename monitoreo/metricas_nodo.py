@@ -184,7 +184,7 @@ class RecolectorMetricas:
     def actualizar_coordinador(self, coordinador_id, es_coordinador_local=False):
         """Actualiza información del coordinador"""
         with self._lock:
-            self.coordinador_actual.set(coordinador_id)
+            self.coordinador_actual.set(float(coordinador_id))
             self.es_coordinador.labels(nodo_id=str(self.nodo_id)).set(
                 1 if es_coordinador_local else 0
             )
