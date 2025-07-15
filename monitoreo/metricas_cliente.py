@@ -35,19 +35,12 @@ class RecolectorMetricas:
             ['estado'],
             registry=self.registro
         )
-        
-        self.tamano_imagenes = Histogram(
-            'tamaño_imagenes_mb',
-            'Tamaño de imágenes subidas en MB',
-            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
-            registry=self.registro
-        )
 
         self.duracion_procesamiento = Histogram(
             'duracion_procesamiento',
             'Tiempo de procesamiento de imagenes',
             ['tamano_mb', 'tipo_procesamiento'],
-            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
+            buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
             registry=self.registro,
         )
         
@@ -69,11 +62,11 @@ class RecolectorMetricas:
         self.tiempo_busqueda_coordinador = Histogram(
             'tiempo_busqueda_coordinador_segundos',
             'Tiempo para encontrar coordinador',
-            buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
+            buckets=[0.1, 0.5, 1.0, 2.0, 5.0],
             registry=self.registro
         )
 
-        self.coordinador_actual = Gauge(
+        self.coordinador_actual = Info(
             'coordinador_actual_nodo_id',
             'ID del coordinador actual',
             registry=self.registro
@@ -108,12 +101,10 @@ class RecolectorMetricas:
                 endpoint=endpoint
             ).observe(duracion)
     
-    def track_imagen_subida(self, tamano_mb, estado="exito"):
+    def track_imagen_subida(self, estado="exito"):
         """Registra imagen subida"""
         with self._lock:
             self.total_imagenes_subidas.labels(estado=estado).inc()
-            if estado == "exito":
-                self.tamano_imagenes.observe(tamano_mb)
 
     def track_procesamiento_imagen(self, duracion, tamano_mb, tipo_procesamiento = "escala grises"):
         """Finaliza tracking de procesamiento de imagen"""
@@ -139,7 +130,7 @@ class RecolectorMetricas:
     def actualizar_coordinador(self, coordinador_id):
         """Actualiza informacion del coordinador"""
         with self._lock:
-            self.coordinador_actual.set(float(coordinador_id))
+            self.coordinador_actual.info({'nodo_id': str(coordinador_id),})
     
     def track_tiempo_coordinador(self, duracion):
         """Registra tiempo de búsqueda de coordinador"""

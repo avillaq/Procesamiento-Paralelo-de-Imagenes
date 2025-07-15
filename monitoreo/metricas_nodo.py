@@ -65,7 +65,7 @@ class RecolectorMetricas:
             'duracion_peticion_grpc',
             'Duración de peticiones gRPC',
             ['nodo_id', 'metodo'],
-            buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0],
+            buckets=[1.0, 2.5, 5.0, 7.0, 10.0],
             registry=self.registro
         )
         

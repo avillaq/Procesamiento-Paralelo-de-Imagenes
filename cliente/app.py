@@ -178,19 +178,19 @@ def procesar_imagen():
     usuario_id = request.cookies.get('usuario_id', str(uuid.uuid4()))
     try:
         if "img" not in request.files:
-            recolector_metricas_cliente.track_imagen_subida(0, "error_no_archivo")
+            recolector_metricas_cliente.track_imagen_subida("error_no_archivo")
             return jsonify({"error": "No se ha enviado ninguna imagen"}), 400
         
         archivo_imagen = request.files["img"]
 
         if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "webp"]:
-            recolector_metricas_cliente.track_imagen_subida(0, "error_formato")
+            recolector_metricas_cliente.track_imagen_subida("error_formato")
             return jsonify({"error": "Formato de imagen no soportado"}), 400
         
         data = archivo_imagen.read()
         tamaño_mb = len(data) / (1024 * 1024)
         if tamaño_mb > 20:
-            recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_tamaño")
+            recolector_metricas_cliente.track_imagen_subida("error_tamaño")
             return jsonify({"error": "El tamaño de la imagen no debe exceder los 20 MB"}), 400
         archivo_imagen.seek(0)
 
@@ -224,7 +224,7 @@ def procesar_imagen():
         # se intenta encontrar un nodo coordinador
         coordinador = encontrar_coordinador()
         if not coordinador:
-            recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_no_coordinador")
+            recolector_metricas_cliente.track_imagen_subida("error_no_coordinador")
             return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
 
         logger.info(f"Enviando imagen a coordinador {coordinador} para procesamiento...")
@@ -270,15 +270,15 @@ def procesar_imagen():
                         "final": f"{base_url}/procesados/{nombre_final_imagen}",
                     })
 
-                recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "exito")
+                recolector_metricas_cliente.track_imagen_subida("exito")
                 response = make_response(jsonify(response_data))
                 response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
                 return response, 200
             else:
-                recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_procesamiento")
+                recolector_metricas_cliente.track_imagen_subida("error_procesamiento")
                 return jsonify({"error": "Error en el procesamiento de la imagen: " + response.mensaje}), 500
     except Exception as e:
-        recolector_metricas_cliente.track_imagen_subida(0, "error_general")
+        recolector_metricas_cliente.track_imagen_subida("error_general")
         recolector_metricas_cliente.track_procesamiento_imagen(0, 0, "escala grises")
 
         logger.error(f"Error procesando imagen: {e}")
