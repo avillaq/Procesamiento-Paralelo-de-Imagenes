@@ -154,7 +154,7 @@ class RecolectorMetricas:
     def actualizar_coordinador(self, coordinador_id):
         """Actualiza informacion del coordinador"""
         with self._lock:
-            self.coordinador_actual.set(coordinador_id)
+            self.coordinador_actual.set(float(coordinador_id))
     
     def track_tiempo_coordinador(self, duracion):
         """Registra tiempo de búsqueda de coordinador"""
