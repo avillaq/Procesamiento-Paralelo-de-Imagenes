@@ -103,7 +103,7 @@ def serve():
     nodos_conocidos = [node.strip() for node in nodos_conocidos if node.strip()]
 
     # servidor de métricas
-    metricas_nodo_server = MetricasServer(nodo_id)
+    metricas_nodo_server = MetricasServer(nodo_id,puerto=8000)
     metricas_nodo_server.start()
     recolector_metricas_nodo = metricas_nodo_server.get_recolector()
 
