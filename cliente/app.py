@@ -1,3 +1,4 @@
+from functools import wraps
 import os
 import uuid
 import time
@@ -36,17 +37,16 @@ except Exception as e:
 
 try:
     gfs = GlusterFS()
-    if recolector_metricas_cliente:
-        recolector_metricas_cliente.actualizar_estado_glusterfs(True)
-        recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "exito")
+    recolector_metricas_cliente.actualizar_estado_glusterfs(True)
+    recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "exito")
 except Exception as e:
     logger.error(f"Error inicializando GlusterFS: {e}")
     gfs = None
-    if recolector_metricas_cliente:
-        recolector_metricas_cliente.actualizar_estado_glusterfs(False)
-        recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "error")
+    recolector_metricas_cliente.actualizar_estado_glusterfs(False)
+    recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "error")
 
 def encontrar_coordinador():
+    inicio = time.time()
     NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
     for direccion in NODOS_CONOCIDOS:
         direccion_proc = direccion.replace(":50053", ":50052") 
@@ -56,9 +56,16 @@ def encontrar_coordinador():
                 response = stub.EstadoNodo(procesador_pb2.EstadoRequest(), timeout=2.0)
                 logger.info(f"Coordinador encontrado en {direccion_proc}: {response.es_coordinador}")
                 if response.es_coordinador:
+                    duracion = time.time() - inicio
+                    recolector_metricas_cliente.track_tiempo_coordinador(duracion)
+                    recolector_metricas_cliente.actualizar_coordinador(direccion_proc)
                     return direccion_proc
         except Exception:
             continue
+    
+    duracion = time.time() - inicio
+    recolector_metricas_cliente.track_tiempo_coordinador(duracion)
+    recolector_metricas_cliente.actualizar_coordinador("-")
     return None
 
 def get_url_base(request):
@@ -67,7 +74,40 @@ def get_url_base(request):
     else:
         return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
     
+# decorador para monitorear peticiones HTTP
+def monitor_request(endpoint):
+    """Decorador para monitorear peticiones HTTP"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):           
+            inicio = time.time()
+            metodo = request.method
+            codigo_estado = 200
+            
+            try:
+                resultado = func(*args, **kwargs)
+                
+                if isinstance(resultado, tuple):
+                    codigo_estado = resultado[1] if len(resultado) > 1 else 200
+                elif hasattr(resultado, 'status_code'):
+                    codigo_estado = resultado.status_code
+                
+                return resultado
+                
+            except Exception as e:
+                codigo_estado = 500
+                raise
+            finally:
+                duracion = time.time() - inicio
+                recolector_metricas_cliente.track_peticion_http(
+                    metodo, endpoint, codigo_estado, duracion
+                )
+        
+        return wrapper
+    return decorator
+
 @app.route("/")
+@monitor_request("index")
 def index():
     usuario_id = request.cookies.get("usuario_id")
     if not usuario_id:
@@ -82,21 +122,25 @@ def index():
             for imagen in imagenes:
                 if imagen.get('imagen_id'):
                     imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
+            recolector_metricas_cliente.track_operacion_glusterfs("listar_imagenes", "exito")
         except Exception as e:
             logger.error(f"Error obteniendo imagenes del usuario: {e}")
+            recolector_metricas_cliente.track_operacion_glusterfs("listar_imagenes", "error")
     return render_template("index.html", 
                          imagenes=imagenes, 
                          usuario_id=usuario_id,
                          glusterfs_disponible=gfs is not None)
 
 @app.route("/galeria")
+@monitor_request("galeria")
 def galeria():
     usuario_id = request.cookies.get("usuario_id", str(uuid.uuid4()))
     
     # todas las imagenes del usuario  
     imagenes_originales = []
     imagenes_procesadas = []
-    
+    total_imagenes = 0
+
     if gfs:
         try:
             imagenes_originales = gfs.get_imagenes_usuario(usuario_id, "original")
@@ -109,9 +153,11 @@ def galeria():
                 if imagen.get('imagen_id'):
                     imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
             total_imagenes = len(imagenes_originales) + len(imagenes_procesadas)
+            recolector_metricas_cliente.track_operacion_glusterfs("listar_galeria", "exito")
         except Exception as e:
             logger.error(f"Error obteniendo galería del usuario: {e}")
-    
+            recolector_metricas_cliente.track_operacion_glusterfs("listar_galeria", "error")
+
     return render_template("galeria.html", 
                          originales=imagenes_originales,
                          procesadas=imagenes_procesadas,
@@ -120,99 +166,126 @@ def galeria():
                         )
 
 @app.route("/resultado")
+@monitor_request("resultado")
 def resultado():
     original = request.args.get("original", "")
     final = request.args.get("final", "")
     return render_template("resultado.html", original=original, final=final)
 
 @app.route("/procesar", methods=["POST"])
+@monitor_request("procesar")
 def procesar_imagen():
     usuario_id = request.cookies.get('usuario_id', str(uuid.uuid4()))
+    try:
+        if "img" not in request.files:
+            recolector_metricas_cliente.track_imagen_subida(0, "error_no_archivo")
+            return jsonify({"error": "No se ha enviado ninguna imagen"}), 400
+        
+        archivo_imagen = request.files["img"]
 
-    if "img" not in request.files:
-        return jsonify({"error": "No se ha enviado ninguna imagen"}), 400
-    
-    archivo_imagen = request.files["img"]
+        if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "webp"]:
+            recolector_metricas_cliente.track_imagen_subida(0, "error_formato")
+            return jsonify({"error": "Formato de imagen no soportado"}), 400
+        
+        data = archivo_imagen.read()
+        tamaño_mb = len(data) / (1024 * 1024)
+        if tamaño_mb > 20:
+            recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_tamaño")
+            return jsonify({"error": "El tamaño de la imagen no debe exceder los 20 MB"}), 400
+        archivo_imagen.seek(0)
 
-    if archivo_imagen.filename.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "webp"]:
-        return jsonify({"error": "Formato de imagen no soportado"}), 400
-    
-    data = archivo_imagen.read()
-    tamaño_mb = len(data) / (1024 * 1024)
-    if tamaño_mb > 20:
-        return jsonify({"error": "El tamaño de la imagen no debe exceder los 20 MB"}), 400
-    archivo_imagen.seek(0)
+        nombre_imagen = str(uuid.uuid4()) + "-" + secure_filename(archivo_imagen.filename)
+        path_original = os.path.join(CARPETA_SUBIDOS, nombre_imagen)
 
-    nombre_imagen = str(uuid.uuid4()) + "-" + secure_filename(archivo_imagen.filename)
-    path_original = os.path.join(CARPETA_SUBIDOS, nombre_imagen)
+        #guardar imagen original
+        archivo_imagen.save(path_original)
 
-    #guardar imagen original
-    archivo_imagen.save(path_original)
+        #nombre final de la imagen procesada
+        nombre_final_imagen = "final-" + nombre_imagen
+        path_final = os.path.join(CARPETA_PROCESADOS, nombre_final_imagen)
 
-    #nombre final de la imagen procesada
-    nombre_final_imagen = "final-" + nombre_imagen
-    path_final = os.path.join(CARPETA_PROCESADOS, nombre_final_imagen)
+        with open(path_original, "rb") as f:
+            data = f.read()
 
-    with open(path_original, "rb") as f:
-        data = f.read()
+        imagen_original_id = None
+        if gfs:
+            try:
+                imagen_original_id = gfs.guardar_imagen(
+                    usuario_id=usuario_id,
+                    imagen_data=data,
+                    tipo_imagen="original",
+                )
+                recolector_metricas_cliente.track_operacion_glusterfs("guardar_original", "exito")
 
-    imagen_original_id = None
-    if gfs:
-        try:
-            imagen_original_id = gfs.guardar_imagen(
-                usuario_id=usuario_id,
-                imagen_data=data,
-                tipo_imagen="original",
-            )
-        except Exception as e:
-            logger.error(f"Error almacenando en GlusterFS: {e}")
+            except Exception as e:
+                logger.error(f"Error almacenando en GlusterFS: {e}")
+                recolector_metricas_cliente.track_operacion_glusterfs("guardar_original", "error")
 
-    # se intenta encontrar un nodo coordinador
-    coordinador = encontrar_coordinador()
-    if not coordinador:
-        return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
+        # se intenta encontrar un nodo coordinador
+        coordinador = encontrar_coordinador()
+        if not coordinador:
+            recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_no_coordinador")
+            return jsonify({"error": "No hay nodos coordinadores disponibles"}), 503
 
-    logger.info(f"Enviando imagen a coordinador {coordinador} para procesamiento...")
-    with grpc.insecure_channel(coordinador, options=[
-            ('grpc.max_receive_message_length', 20 * 1024 * 1024),  # 20MB
-            ('grpc.max_send_message_length', 20 * 1024 * 1024)
-        ]) as channel:
-        stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
-        response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
-        if response.status == "ok":
-            with open(path_final, "wb") as f:
-                f.write(response.imagen_data)
+        logger.info(f"Enviando imagen a coordinador {coordinador} para procesamiento...")
+        
+        procesamiento_inicio = time.time()
+        with grpc.insecure_channel(coordinador, options=[
+                ('grpc.max_receive_message_length', 20 * 1024 * 1024),  # 20MB
+                ('grpc.max_send_message_length', 20 * 1024 * 1024)
+            ]) as channel:
+            
+            stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
+            response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
+            
+            procesamiento_duracion = time.time() - procesamiento_inicio
+            recolector_metricas_cliente.track_procesamiento_imagen(procesamiento_duracion, tamaño_mb, "escala grises")
 
-            imagen_procesada_id = None
-            if gfs:
-                try:
-                    imagen_procesada_id = gfs.guardar_imagen(
-                        usuario_id=usuario_id,
-                        imagen_data=response.imagen_data,
-                        tipo_imagen="procesada",
-                    )
-                except Exception as e:
-                    logger.error(f"Error almacenando en GlusterFS: {e}")
-            base_url = get_url_base(request)
-            response_data = {}
-            if imagen_procesada_id and imagen_original_id:
-                response_data.update({
-                    "original": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_original_id}",
-                    "final": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_procesada_id}",
-                })
+            if response.status == "ok":
+                with open(path_final, "wb") as f:
+                    f.write(response.imagen_data)
+
+                imagen_procesada_id = None
+                if gfs:
+                    try:
+                        imagen_procesada_id = gfs.guardar_imagen(
+                            usuario_id=usuario_id,
+                            imagen_data=response.imagen_data,
+                            tipo_imagen="procesada",
+                        )
+                        recolector_metricas_cliente.track_operacion_glusterfs("guardar_procesada", "exito")
+                    except Exception as e:
+                        logger.error(f"Error almacenando en GlusterFS: {e}")
+                        recolector_metricas_cliente.track_operacion_glusterfs("guardar_procesada", "error")
+                base_url = get_url_base(request)
+                response_data = {}
+                if imagen_procesada_id and imagen_original_id:
+                    response_data.update({
+                        "original": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_original_id}",
+                        "final": f"{base_url}/usuario/{usuario_id}/imagen/{imagen_procesada_id}",
+                    })
+                else:
+                    response_data.update({
+                        "original": f"{base_url}/subidos/{nombre_imagen}",
+                        "final": f"{base_url}/procesados/{nombre_final_imagen}",
+                    })
+
+                recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "exito")
+                response = make_response(jsonify(response_data))
+                response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
+                return response, 200
             else:
-                response_data.update({
-                    "original": f"{base_url}/subidos/{nombre_imagen}",
-                    "final": f"{base_url}/procesados/{nombre_final_imagen}",
-                })
+                recolector_metricas_cliente.track_imagen_subida(tamaño_mb, "error_procesamiento")
+                return jsonify({"error": "Error en el procesamiento de la imagen: " + response.mensaje}), 500
+    except Exception as e:
+        recolector_metricas_cliente.track_imagen_subida(0, "error_general")
+        recolector_metricas_cliente.track_procesamiento_imagen(0, 0, "escala grises")
 
-            response = make_response(jsonify(response_data))
-            response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
-            return response, 200
-        else:
-            return jsonify({"error": "Error en el procesamiento de la imagen: " + response.mensaje}), 500
+        logger.error(f"Error procesando imagen: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 @app.route("/usuario/<usuario_id>/imagen/<imagen_id>")
+@monitor_request("imagen_distribuida")
 def get_imagen_distribuida(usuario_id, imagen_id):
     if not gfs:
         return "Sistema de archivos distribuido no disponible", 503
@@ -221,33 +294,52 @@ def get_imagen_distribuida(usuario_id, imagen_id):
         imagen_data = gfs.get_imagen_distribuida(usuario_id, imagen_id)
         
         if imagen_data:
+            recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "exito")
             return Response(imagen_data, mimetype='image/jpeg')
         else:
+            recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "no_encontrada")
             return "Imagen no encontrada en sistema distribuido", 404
             
     except Exception as e:
         logger.error(f"Error sirviendo imagen distribuida: {e}")
+        recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "error")
         return "Error accediendo al sistema distribuido", 500
     
 @app.route("/cluster/health")
+@monitor_request("cluster_health")
 def cluster_health():
     if not gfs:
         return jsonify({"error": "Sistema de archivos distribuido no disponible"}), 503
     
     try:
         data = gfs.get_gluster_health()
+        recolector_metricas_cliente.track_operacion_glusterfs("consultar_salud", "exito")
         return jsonify(data)
     except Exception as e:
         logger.error(f"Error obteniendo estado del cluster: {e}")
+        recolector_metricas_cliente.track_operacion_glusterfs("consultar_salud", "error")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/subidos/<nombre_archivo>")
+@monitor_request("archivo_subido")
 def archivos_subidos(nombre_archivo):
     return send_from_directory(CARPETA_SUBIDOS, nombre_archivo)
 
 @app.route("/procesados/<nombre_archivo>")
+@monitor_request("archivo_procesado")
 def archivos_procesados(nombre_archivo):
     return send_from_directory(CARPETA_PROCESADOS, nombre_archivo)
+
+import atexit
+def cleanup():
+    """Limpieza al cerrar la aplicación"""
+    if metricas_cliente_server:
+        try:
+            metricas_cliente_server.stop()
+            logger.info("Servidor de métricas detenido correctamente")
+        except Exception as e:
+            logger.error(f"Error deteniendo servidor de métricas: {e}")
+atexit.register(cleanup)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
