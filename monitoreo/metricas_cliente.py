@@ -51,13 +51,6 @@ class RecolectorMetricas:
             registry=self.registro,
         )
         
-        # usuarios
-        self.sesiones_concurrentes = Gauge(
-            'sesiones_concurrentes',
-            'Sesiones concurrentes actuales',
-            registry=self.registro
-        )
-        
         # métricas de GlusterFS
         self.total_operaciones_glusterfs = Counter(
             'total_operaciones_glusterfs',
@@ -86,13 +79,6 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        # Info del sistema
-        self.info_cliente = Info(
-            'info_cliente',
-            'Información del cliente Flask',
-            registry=self.registro
-        )
-        
         self._configurar_info()
         self._lock = threading.RLock()
         
@@ -107,7 +93,6 @@ class RecolectorMetricas:
             'python_version': f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
             'inicializado': time.strftime('%Y-%m-%d %H:%M:%S')
         }
-        self.info_cliente.info(info)
     
     def track_peticion_http(self, metodo, endpoint, codigo_estado, duracion):
         """Registra petición HTTP"""

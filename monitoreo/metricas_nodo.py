@@ -91,13 +91,6 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        # info del sistema
-        self.info_nodo = Info(
-            'info_nodo',
-            'Información del nodo',
-            registry=self.registro
-        )
-        
         self._configurar_info()
         self._lock = threading.RLock()
 
@@ -114,8 +107,6 @@ class RecolectorMetricas:
             'hostname': os.uname().nodename,
             'inicializado': time.strftime('%Y-%m-%d %H:%M:%S')
         }
-        
-        self.info_nodo.info(info)
     
     def _monitor_sistema(self):
         """Monitor continuo de métricas del sistema"""
