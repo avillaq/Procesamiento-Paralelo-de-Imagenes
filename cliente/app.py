@@ -58,14 +58,14 @@ def encontrar_coordinador():
                 if response.es_coordinador:
                     duracion = time.time() - inicio
                     recolector_metricas_cliente.track_tiempo_coordinador(duracion)
-                    recolector_metricas_cliente.actualizar_coordinador(direccion_proc)
+                    recolector_metricas_cliente.actualizar_coordinador(response.nodo_id)
                     return direccion_proc
         except Exception:
             continue
     
     duracion = time.time() - inicio
     recolector_metricas_cliente.track_tiempo_coordinador(duracion)
-    recolector_metricas_cliente.actualizar_coordinador("-")
+    recolector_metricas_cliente.actualizar_coordinador(0)
     return None
 
 def get_url_base(request):
