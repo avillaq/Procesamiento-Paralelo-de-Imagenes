@@ -18,8 +18,8 @@ class RecolectorMetricas:
         # métricas de procesamiento de imagenes
         self.total_imagenes_procesadas = Counter(
             'total_imagenes_procesadas',
-            'Total de imagenes procesadas',
-            ['nodo_id', 'estado', 'tipo_procesamiento'],
+            'Total de imágenes procesadas por el nodo',
+            ['nodo_id', 'estado', 'tamano_imagen'],
             registry=self.registro
         )
         
@@ -45,12 +45,6 @@ class RecolectorMetricas:
             ['antiguo_c', 'nuevo_c'],
             registry=self.registro
         )
-        
-        self.coordinador_actual = Gauge(
-            'coordinador_actual_nodo_id',
-            'ID del coordinador actual',
-            registry=self.registro
-        )
 
         self.es_coordinador = Gauge(
             'es_coordinador',
@@ -71,6 +65,7 @@ class RecolectorMetricas:
             'duracion_peticion_grpc',
             'Duración de peticiones gRPC',
             ['nodo_id', 'metodo'],
+            buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0],
             registry=self.registro
         )
         
@@ -81,80 +76,63 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        self.estado_nodo = Gauge(
-            'estado_nodo',
-            'Estado de salud del nodo (1=healthy, 0=unhealthy)',
-            ['nodo_id'],
-            registry=self.registro
-        )
-        
         # métricas del sistema
         self.uso_cpu = Gauge(
             'porcentaje_uso_cpu',
-            'Uso de CPU del nodo',
+            'Porcentaje de uso de CPU',
             ['nodo_id'],
             registry=self.registro
         )
         
         self.uso_memoria = Gauge(
             'porcentaje_uso_memoria',
-            'Uso de memoria del nodo',
-            ['nodo_id'],
-            registry=self.registro
-        )
-        
-        self.carga_trabajo = Gauge(
-            'carga_trabajo_actual',
-            'Carga de trabajo actual del nodo',
+            'Porcentaje de uso de memoria',
             ['nodo_id'],
             registry=self.registro
         )
         
         # info del sistema
-        self.info_sistema = Info(
-            'info_sistema',
-            'Informacion del sistema',
+        self.info_nodo = Info(
+            'info_nodo',
+            'Información del nodo',
             registry=self.registro
         )
         
-        self._configurar_info_sistema()
-        
+        self._configurar_info()
         self._lock = threading.RLock()
-        self._ultima_actualizacion = time.time()
 
         # Iniciar metricas
-        self.estado_nodo.labels(nodo_id=str(nodo_id)).set(1)
-        self.es_coordinador.labels(nodo_id=str(nodo_id)).set(0)
+        self._monitoring_thread = threading.Thread(target=self._monitor_sistema, daemon=True)
+        self._monitoring_running = True
+        self._monitoring_thread.start()
         
-    def _configurar_info_sistema(self):
+    def _configurar_info(self):
         """Establece información del sistema"""
         info = {
             'nodo_id': str(self.nodo_id),
             'version': '1.0.0',
             'hostname': os.uname().nodename,
-            'arquitectura': os.uname().machine,
-            'sistema_operativo': os.uname().sysname,
             'inicializado': time.strftime('%Y-%m-%d %H:%M:%S')
         }
         
-        self.info_sistema.info(info)
+        self.info_nodo.info(info)
     
-    def actualizar_metricas_sistema(self):
-        """Actualiza métricas del sistema operativo"""
-        try:
-            with self._lock:
-                # CPU
+    def _monitor_sistema(self):
+        """Monitor continuo de métricas del sistema"""
+        while self._monitoring_running:
+            try:
+                # CPU y memoria
                 cpu_percent = psutil.cpu_percent(interval=1)
-                self.uso_cpu.labels(nodo_id=str(self.nodo_id)).set(cpu_percent)
+                memory_percent = psutil.virtual_memory().percent
                 
-                # Memoria
-                memoria = psutil.virtual_memory()
-                self.uso_memoria.labels(nodo_id=str(self.nodo_id)).set(memoria.percent)
+                with self._lock:
+                    self.porcentaje_uso_cpu.labels(nodo_id=str(self.nodo_id)).set(cpu_percent)
+                    self.porcentaje_uso_memoria.labels(nodo_id=str(self.nodo_id)).set(memory_percent)
                 
-                self._ultima_actualizacion = time.time()
-                
-        except Exception as e:
-            logger.error(f"Error actualizando métricas del sistema: {e}")
+                time.sleep(5)
+            except Exception as e:
+                logger.error(f"Error monitoreando sistema en nodo {self.nodo_id}: {e}")
+                time.sleep(10)
     
     # Metodos para tracking de imagenes
     def track_procesamiento_imagen(self, duracion, estado = "exito", tamano_imagen = "mediana", tipo_procesamiento = "escala grises"):
@@ -163,7 +141,7 @@ class RecolectorMetricas:
             self.total_imagenes_procesadas.labels(
                 nodo_id=str(self.nodo_id),
                 estado=estado,
-                tipo_procesamiento=tipo_procesamiento
+                tamano_imagen=tamano_imagen
             ).inc()
             
             self.duracion_procesamiento.labels(
@@ -181,13 +159,17 @@ class RecolectorMetricas:
                 resultado=resultado
             ).inc()
 
-    def actualizar_coordinador(self, coordinador_id, es_coordinador_local=False):
+    def actualizar_coordinador(self, es_coordinador=False):
         """Actualiza información del coordinador"""
         with self._lock:
-            self.coordinador_actual.set(float(coordinador_id))
             self.es_coordinador.labels(nodo_id=str(self.nodo_id)).set(
-                1 if es_coordinador_local else 0
+                1 if es_coordinador else 0
             )
+
+    def actualizar_nodos_activos(self, cantidad):
+        """Actualiza cantidad de nodos activos"""
+        with self._lock:
+            self.nodos_activos.set(cantidad)
     
     def track_cambio_coordinador(self, antiguo_c, nuevo_c):
         """Registra cambio de coordinador"""
@@ -196,14 +178,6 @@ class RecolectorMetricas:
                 antiguo_c=str(antiguo_c),
                 nuevo_c=str(nuevo_c)
             ).inc()
-
-    def actualizar_cluster_info(self, nodos_activos, estados_nodos):
-        """Actualiza información del cluster"""
-        with self._lock:
-            self.nodos_activos.set(nodos_activos)
-            
-            for nodo_id, estado in estados_nodos.items():
-                self.estado_nodo.labels(nodo_id=str(nodo_id)).set(1 if estado else 0)
     
     # Metodos para gRPC
     def track_peticion_grpc(self, metodo, duracion, estado = "exito"):
@@ -220,6 +194,10 @@ class RecolectorMetricas:
                 metodo=metodo
             ).observe(duracion)
 
+    def stop_monitoring(self):
+        """Detiene el monitoreo"""
+        self._monitoring_running = False
+
     def get_metricas(self):
         """Metricas"""
         return generate_latest(self.registro)
@@ -235,14 +213,13 @@ class MetricasHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/metricas":
             try:
-                self.recolector_metricas.actualizar_metricas_sistema()
                 metricas_data = self.recolector_metricas.get_metricas()
                 self.send_response(200)
                 self.send_header("Content-Type", CONTENT_TYPE_LATEST)
                 self.end_headers()
                 self.wfile.write(metricas_data)
             except Exception as e:
-                logger.error(f"Error sirviendo métricas: {e}")
+                logger.error(f"Error sirviendo métricas del nodo: {e}")
                 self.send_response(500)
                 self.end_headers()
                 
@@ -281,9 +258,9 @@ class MetricasServer:
             self.server_thread = threading.Thread(target=self._run_server, daemon=True)
             self.running = True
             self.server_thread.start()
-            logger.info(f"Servidor de metricas de nodos iniciado en puerto {self.puerto}")
+            logger.info(f"Servidor de métricas del nodo {self.nodo_id} iniciado en puerto {self.puerto}")
         except Exception as e:
-            logger.error(f"Error iniciando servidor de métricas: {e}")
+            logger.error(f"Error iniciando servidor de métricas del nodo {self.nodo_id}: {e}")
             raise
     
     def _run_server(self):
@@ -299,6 +276,7 @@ class MetricasServer:
     def stop(self):
         """Detiene servidor"""
         self.running = False
+        self.recolector_metricas.stop_monitoring()
         if self.server:
             self.server.server_close()
         logger.info("Servidor de métricas de nodos detenido")
