@@ -44,14 +44,8 @@ class RecolectorMetricas:
             registry=self.registro,
         )
         
-        # métricas de GlusterFS
-        self.total_operaciones_glusterfs = Counter(
-            'total_operaciones_glusterfs',
-            'Total de operaciones en GlusterFS',
-            ['operacion', 'estado'],
-            registry=self.registro
-        )
         
+        # métricas de GlusterFS     
         self.estado_glusterfs = Gauge(
             'estado_glusterfs',
             'Estado de GlusterFS (1=disponible, 0=no disponible)',
@@ -113,14 +107,6 @@ class RecolectorMetricas:
                 tamano_mb=tamano_mb,
                 tipo_procesamiento=tipo_procesamiento
             ).observe(duracion)
-    
-    def track_operacion_glusterfs(self, operacion, estado="exito"):
-        """Registra operación en GlusterFS"""
-        with self._lock:
-            self.total_operaciones_glusterfs.labels(
-                operacion=operacion,
-                estado=estado
-            ).inc()
     
     def actualizar_estado_glusterfs(self, disponible):
         """Actualiza estado de GlusterFS"""
