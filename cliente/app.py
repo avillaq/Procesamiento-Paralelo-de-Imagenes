@@ -38,12 +38,10 @@ except Exception as e:
 try:
     gfs = GlusterFS()
     recolector_metricas_cliente.actualizar_estado_glusterfs(True)
-    recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "exito")
 except Exception as e:
     logger.error(f"Error inicializando GlusterFS: {e}")
     gfs = None
     recolector_metricas_cliente.actualizar_estado_glusterfs(False)
-    recolector_metricas_cliente.track_operacion_glusterfs("inicializacion", "error")
 
 def encontrar_coordinador():
     inicio = time.time()
@@ -122,10 +120,8 @@ def index():
             for imagen in imagenes:
                 if imagen.get('imagen_id'):
                     imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
-            recolector_metricas_cliente.track_operacion_glusterfs("listar_imagenes", "exito")
         except Exception as e:
             logger.error(f"Error obteniendo imagenes del usuario: {e}")
-            recolector_metricas_cliente.track_operacion_glusterfs("listar_imagenes", "error")
     return render_template("index.html", 
                          imagenes=imagenes, 
                          usuario_id=usuario_id,
@@ -153,10 +149,8 @@ def galeria():
                 if imagen.get('imagen_id'):
                     imagen['url'] = f"{base_url}/usuario/{usuario_id}/imagen/{imagen['imagen_id']}"
             total_imagenes = len(imagenes_originales) + len(imagenes_procesadas)
-            recolector_metricas_cliente.track_operacion_glusterfs("listar_galeria", "exito")
         except Exception as e:
             logger.error(f"Error obteniendo galería del usuario: {e}")
-            recolector_metricas_cliente.track_operacion_glusterfs("listar_galeria", "error")
 
     return render_template("galeria.html", 
                          originales=imagenes_originales,
@@ -215,11 +209,9 @@ def procesar_imagen():
                     imagen_data=data,
                     tipo_imagen="original",
                 )
-                recolector_metricas_cliente.track_operacion_glusterfs("guardar_original", "exito")
 
             except Exception as e:
                 logger.error(f"Error almacenando en GlusterFS: {e}")
-                recolector_metricas_cliente.track_operacion_glusterfs("guardar_original", "error")
 
         # se intenta encontrar un nodo coordinador
         coordinador = encontrar_coordinador()
@@ -253,10 +245,8 @@ def procesar_imagen():
                             imagen_data=response.imagen_data,
                             tipo_imagen="procesada",
                         )
-                        recolector_metricas_cliente.track_operacion_glusterfs("guardar_procesada", "exito")
                     except Exception as e:
                         logger.error(f"Error almacenando en GlusterFS: {e}")
-                        recolector_metricas_cliente.track_operacion_glusterfs("guardar_procesada", "error")
                 base_url = get_url_base(request)
                 response_data = {}
                 if imagen_procesada_id and imagen_original_id:
@@ -294,15 +284,12 @@ def get_imagen_distribuida(usuario_id, imagen_id):
         imagen_data = gfs.get_imagen_distribuida(usuario_id, imagen_id)
         
         if imagen_data:
-            recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "exito")
             return Response(imagen_data, mimetype='image/jpeg')
         else:
-            recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "no_encontrada")
             return "Imagen no encontrada en sistema distribuido", 404
             
     except Exception as e:
         logger.error(f"Error sirviendo imagen distribuida: {e}")
-        recolector_metricas_cliente.track_operacion_glusterfs("obtener_imagen", "error")
         return "Error accediendo al sistema distribuido", 500
     
 @app.route("/cluster/health")
@@ -313,11 +300,9 @@ def cluster_health():
     
     try:
         data = gfs.get_gluster_health()
-        recolector_metricas_cliente.track_operacion_glusterfs("consultar_salud", "exito")
         return jsonify(data)
     except Exception as e:
         logger.error(f"Error obteniendo estado del cluster: {e}")
-        recolector_metricas_cliente.track_operacion_glusterfs("consultar_salud", "error")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/subidos/<nombre_archivo>")
