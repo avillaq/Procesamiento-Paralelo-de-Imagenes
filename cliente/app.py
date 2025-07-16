@@ -28,6 +28,9 @@ os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
 metricas_cliente_server = MetricasServer(puerto=8000)
 recolector_metricas_cliente = None
 
+# Variables para calcular speedup
+nodos_activos_actuales = 0
+
 try:
     metricas_cliente_server.start()
     recolector_metricas_cliente = metricas_cliente_server.get_recolector()
@@ -46,25 +49,44 @@ except Exception as e:
 def encontrar_coordinador():
     inicio = time.time()
     NODOS_CONOCIDOS = os.environ.get("NODOS_CONOCIDOS", "").split(",")
+    
+    coordinador_encontrado = None
+
     for direccion in NODOS_CONOCIDOS:
         direccion_proc = direccion.replace(":50053", ":50052") 
         try:
             with grpc.insecure_channel(direccion_proc) as channel:
                 stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
                 response = stub.EstadoNodo(procesador_pb2.EstadoRequest(), timeout=2.0)
-                logger.info(f"Coordinador encontrado en {direccion_proc}: {response.es_coordinador}")
-                if response.es_coordinador:
-                    duracion = time.time() - inicio
-                    recolector_metricas_cliente.track_tiempo_coordinador(duracion)
+                
+                logger.info(f"Nodo {direccion_proc}: activo, coordinador={response.es_coordinador}")
+                if response.es_coordinador and not coordinador_encontrado:
+                    coordinador_encontrado = direccion_proc
                     recolector_metricas_cliente.actualizar_coordinador(response.nodo_id)
-                    return direccion_proc
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Nodo {direccion_proc} no disponible: {e}")
             continue
     
     duracion = time.time() - inicio
     recolector_metricas_cliente.track_tiempo_coordinador(duracion)
-    recolector_metricas_cliente.actualizar_coordinador(0)
-    return None
+    
+    if not coordinador_encontrado:
+        recolector_metricas_cliente.actualizar_coordinador(0)
+    
+    return coordinador_encontrado
+
+def categorizar_tamano_mb(tamano_mb):
+    """Categoriza el tamaño de imagen en MB"""
+    if tamano_mb < 1:
+        return "< 1MB"
+    elif tamano_mb < 3:
+        return "1-3MB"
+    elif tamano_mb < 5:
+        return "3-5MB"
+    elif tamano_mb < 10:
+        return "5-10MB"
+    else:
+        return "> 10MB"
 
 def get_url_base(request):
     if 'localhost' in request.host or '127.0.0.1' in request.host:
@@ -183,6 +205,8 @@ def procesar_imagen():
         
         data = archivo_imagen.read()
         tamaño_mb = len(data) / (1024 * 1024)
+        categoria_tamano = categorizar_tamano_mb(tamaño_mb)
+        
         if tamaño_mb > 20:
             recolector_metricas_cliente.track_imagen_subida("error_tamaño")
             return jsonify({"error": "El tamaño de la imagen no debe exceder los 20 MB"}), 400
@@ -230,9 +254,12 @@ def procesar_imagen():
             stub = procesador_pb2_grpc.ProcesadorImagenStub(channel)
             response = stub.ProcesarImagen(procesador_pb2.ImagenRequest(data=data), timeout=30.0)
             
-            procesamiento_duracion = time.time() - procesamiento_inicio
-            recolector_metricas_cliente.track_procesamiento_imagen(procesamiento_duracion, tamaño_mb, "escala grises")
-
+            procesamiento_duracion = time.time() - procesamiento_inicio        
+            recolector_metricas_cliente.track_procesamiento_imagen(
+                procesamiento_duracion, 
+                categoria_tamano, 
+                "escala grises"
+            )
             if response.status == "ok":
                 with open(path_final, "wb") as f:
                     f.write(response.imagen_data)
@@ -247,6 +274,7 @@ def procesar_imagen():
                         )
                     except Exception as e:
                         logger.error(f"Error almacenando en GlusterFS: {e}")
+                        
                 base_url = get_url_base(request)
                 response_data = {}
                 if imagen_procesada_id and imagen_original_id:
@@ -261,15 +289,23 @@ def procesar_imagen():
                     })
 
                 recolector_metricas_cliente.track_imagen_subida("exito")
+                
                 response = make_response(jsonify(response_data))
                 response.set_cookie("usuario_id", usuario_id, max_age=30*24*60*60)
                 return response, 200
             else:
                 recolector_metricas_cliente.track_imagen_subida("error_procesamiento")
                 return jsonify({"error": "Error en el procesamiento de la imagen: " + response.mensaje}), 500
+                
+    except grpc.RpcError as e:
+        logger.error(f"Error gRPC procesando imagen: {e}")
+        recolector_metricas_cliente.track_imagen_subida("error_grpc")
+        recolector_metricas_cliente.track_procesamiento_imagen(0, "error", "error")
+        return jsonify({"error": "Error de comunicación con el servidor"}), 503
+        
     except Exception as e:
         recolector_metricas_cliente.track_imagen_subida("error_general")
-        recolector_metricas_cliente.track_procesamiento_imagen(0, 0, "escala grises")
+        recolector_metricas_cliente.track_procesamiento_imagen(0, "error", "error")
 
         logger.error(f"Error procesando imagen: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -314,6 +350,25 @@ def archivos_subidos(nombre_archivo):
 @monitor_request("archivo_procesado")
 def archivos_procesados(nombre_archivo):
     return send_from_directory(CARPETA_PROCESADOS, nombre_archivo)
+
+@app.before_first_request
+def inicializar_metricas():
+    """Inicializa métricas al inicio de la aplicación"""
+    if gfs:
+        try:
+            gfs.get_gluster_health()
+            recolector_metricas_cliente.actualizar_estado_glusterfs(True)
+            logger.info("GlusterFS inicializado y disponible")
+        except Exception as e:
+            logger.error(f"Error verificando GlusterFS: {e}")
+            recolector_metricas_cliente.actualizar_estado_glusterfs(False)
+    
+    # Buscar coordinador inicial
+    coordinador = encontrar_coordinador()
+    if coordinador:
+        logger.info(f"Coordinador inicial encontrado: {coordinador}")
+    else:
+        logger.warning("No se encontró coordinador inicial")
 
 import atexit
 def cleanup():
