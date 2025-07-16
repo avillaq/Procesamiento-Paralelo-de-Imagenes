@@ -1,11 +1,11 @@
 {
   "id": null,
-  "title": "Sistema Distribuido - Procesamiento de Imágenes",
-  "description": "Monitoreo completo del sistema distribuido",
-  "tags": ["sistema-distribuido", "procesamiento-imagenes"],
+  "title": "Sistema Distribuido - Procesamiento Paralelo de Imágenes",
+  "description": "Métricas críticas del sistema distribuido",
+  "tags": ["sistema-distribuido", "procesamiento-imagenes", "rendimiento"],
   "timezone": "browser",
   "schemaVersion": 30,
-  "version": 1,
+  "version": 2,
   "panels": [
     {
       "id": 1,
@@ -24,14 +24,14 @@
           "thresholds": {
             "steps": [
               {"color": "red", "value": 0},
-              {"color": "yellow", "value": 3},
-              {"color": "green", "value": 4}
+              {"color": "yellow", "value": 2},
+              {"color": "green", "value": 3}
             ]
           },
           "unit": "short"
         }
       },
-      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 0}
     },
     {
       "id": 2,
@@ -50,204 +50,11 @@
           "color": {"mode": "fixed", "fixedColor": "blue"}
         }
       },
-      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 0}
     },
     {
       "id": 3,
-      "title": "Peticiones HTTP del Cliente",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "rate(total_peticiones_http_total{job=\"cliente-flask\"}[5m])",
-          "legendFormat": "{{metodo}} {{endpoint}} ({{codigo_estado}})",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "reqps",
-          "label": "Peticiones/segundo"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
-    },
-    {
-      "id": 4,
-      "title": "Imágenes Procesadas - Nodos",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "rate(total_imagenes_procesadas_total{job=\"nodos-procesamiento\"}[5m])",
-          "legendFormat": "Nodo {{nodo_id}} - {{estado}}",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "ops",
-          "label": "Imágenes/segundo"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
-    },
-    {
-      "id": 5,
-      "title": "Imágenes Subidas - Cliente",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "rate(total_imagenes_subidas_total{job=\"cliente-flask\"}[5m])",
-          "legendFormat": "{{estado}}",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "ops",
-          "label": "Imágenes/segundo"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
-    },
-    {
-      "id": 6,
-      "title": "Tiempo de Procesamiento - Cliente",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_bucket{job=\"cliente-flask\"}[5m]))",
-          "legendFormat": "p50 - Cliente",
-          "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_bucket{job=\"cliente-flask\"}[5m]))",
-          "legendFormat": "p95 - Cliente",
-          "refId": "B"
-        },
-        {
-          "expr": "histogram_quantile(0.99, rate(duracion_procesamiento_bucket{job=\"cliente-flask\"}[5m]))",
-          "legendFormat": "p99 - Cliente",
-          "refId": "C"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "s",
-          "label": "Tiempo (segundos)"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
-    },
-    {
-      "id": 7,
-      "title": "Tiempo de Procesamiento - Nodos",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_bucket{job=\"nodos-procesamiento\"}[5m]))",
-          "legendFormat": "p50 - Nodo {{nodo_id}}",
-          "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_bucket{job=\"nodos-procesamiento\"}[5m]))",
-          "legendFormat": "p95 - Nodo {{nodo_id}}",
-          "refId": "B"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "s",
-          "label": "Tiempo (segundos)"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
-    },
-    {
-      "id": 8,
-      "title": "Peticiones gRPC por Nodo",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "rate(total_peticiones_grpc_total{job=\"nodos-procesamiento\"}[5m])",
-          "legendFormat": "Nodo {{nodo_id}} - {{metodo}} ({{estado}})",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "reqps",
-          "label": "Peticiones/segundo"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
-    },
-    {
-      "id": 9,
-      "title": "Latencia HTTP - Cliente",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.50, rate(duracion_peticiones_http_segundos_bucket{job=\"cliente-flask\"}[5m]))",
-          "legendFormat": "p50 HTTP",
-          "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(duracion_peticiones_http_segundos_bucket{job=\"cliente-flask\"}[5m]))",
-          "legendFormat": "p95 HTTP",
-          "refId": "B"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "s",
-          "label": "Tiempo (segundos)"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
-    },
-    {
-      "id": 10,
-      "title": "Uso de CPU por Nodo",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "porcentaje_uso_cpu{job=\"nodos-procesamiento\"}",
-          "legendFormat": "Nodo {{nodo_id}}",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "percent",
-          "max": 100,
-          "min": 0
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
-    },
-    {
-      "id": 11,
-      "title": "Uso de Memoria por Nodo",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "porcentaje_uso_memoria{job=\"nodos-procesamiento\"}",
-          "legendFormat": "Nodo {{nodo_id}}",
-          "refId": "A"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "percent",
-          "max": 100,
-          "min": 0
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
-    },
-    {
-      "id": 12,
-      "title": "Estado de GlusterFS",
+      "title": "Estado GlusterFS",
       "type": "stat",
       "targets": [
         {
@@ -271,46 +78,130 @@
           }
         }
       },
-      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 40}
+      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 0}
     },
     {
-      "id": 13,
-      "title": "Elecciones Bully",
+      "id": 4,
+      "title": "Speedup Paralelo",
       "type": "graph",
       "targets": [
         {
-          "expr": "increase(total_elecciones_bully_total{job=\"nodos-procesamiento\"}[5m])",
-          "legendFormat": "Nodo {{nodo_id}} - {{resultado}}",
+          "expr": "speedup_paralelo",
+          "legendFormat": "{{num_nodos}} nodos",
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 40}
+      "yAxes": [
+        {
+          "unit": "short",
+          "label": "Factor de mejora"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}
     },
     {
-      "id": 14,
-      "title": "Operaciones GlusterFS",
+      "id": 5,
+      "title": "Throughput - Imágenes Subidas vs Procesadas",
       "type": "graph",
       "targets": [
         {
-          "expr": "rate(total_operaciones_glusterfs_total{job=\"cliente-flask\"}[5m])",
-          "legendFormat": "{{operacion}} ({{estado}})",
+          "expr": "rate(total_imagenes_subidas_total{job=\"cliente-flask\"}[5m])",
+          "legendFormat": "Subidas",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(total_imagenes_procesadas_total{job=\"nodos-procesamiento\"}[5m]))",
+          "legendFormat": "Procesadas (Total)",
+          "refId": "B"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "ops",
+          "label": "Imágenes/segundo"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+    },
+    {
+      "id": 6,
+      "title": "Latencia de Procesamiento - Comparativa",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p50 - Cliente (Total)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p95 - Cliente (Total)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_nodo_bucket[5m]))",
+          "legendFormat": "p50 - Nodos (Individual)",
+          "refId": "C"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "s",
+          "label": "Tiempo (segundos)"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14}
+    },
+    {
+      "id": 7,
+      "title": "Estado de Coordinadores",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "es_coordinador",
+          "legendFormat": "Nodo {{nodo_id}}",
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48}
+      "yAxes": [
+        {
+          "unit": "short",
+          "max": 1.2,
+          "min": -0.2
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22}
     },
     {
-      "id": 15,
+      "id": 8,
+      "title": "Algoritmo Bully - Actividad",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "increase(total_elecciones_bully_total[5m])",
+          "legendFormat": "Elecciones - {{resultado}}",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(total_cambios_coordinador_total[5m])",
+          "legendFormat": "Cambios {{antiguo_c}}→{{nuevo_c}}",
+          "refId": "B"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30}
+    },
+    {
+      "id": 9,
       "title": "Tiempo de Búsqueda de Coordinador",
       "type": "graph",
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, rate(tiempo_busqueda_coordinador_segundos_bucket{job=\"cliente-flask\"}[5m]))",
+          "expr": "histogram_quantile(0.50, rate(tiempo_busqueda_coordinador_segundos_bucket[5m]))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, rate(tiempo_busqueda_coordinador_segundos_bucket{job=\"cliente-flask\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(tiempo_busqueda_coordinador_segundos_bucket[5m]))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -321,7 +212,7 @@
           "label": "Tiempo (segundos)"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48}
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30}
     }
   ],
   "time": {
