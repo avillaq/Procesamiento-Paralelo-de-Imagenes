@@ -39,7 +39,7 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "coordinador_actual_nodo_id",
+          "expr": "coordinador_actual_nodo_id_info",
           "legendFormat": "Coordinador",
           "refId": "A"
         }
