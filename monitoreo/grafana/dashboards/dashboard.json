@@ -1,15 +1,15 @@
 {
   "id": null,
   "title": "Sistema Distribuido - Procesamiento Paralelo de Imágenes",
-  "description": "Métricas críticas del sistema distribuido",
-  "tags": ["sistema-distribuido", "procesamiento-imagenes", "rendimiento"],
+  "description": "Dashboard completo con todas las métricas del sistema distribuido",
+  "tags": ["sistema-distribuido", "procesamiento-imagenes", "rendimiento", "bully", "glusterfs"],
   "timezone": "browser",
   "schemaVersion": 30,
-  "version": 2,
+  "version": 3,
   "panels": [
     {
       "id": 1,
-      "title": "Nodos Activos",
+      "title": "Nodos Activos en Cluster",
       "type": "stat",
       "targets": [
         {
@@ -24,14 +24,17 @@
           "thresholds": {
             "steps": [
               {"color": "red", "value": 0},
-              {"color": "yellow", "value": 2},
+              {"color": "yellow", "value": 1},
+              {"color": "orange", "value": 2},
               {"color": "green", "value": 3}
             ]
           },
-          "unit": "short"
+          "unit": "short",
+          "min": 0,
+          "max": 10
         }
       },
-      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 0}
+      "gridPos": {"h": 6, "w": 3, "x": 0, "y": 0}
     },
     {
       "id": 2,
@@ -40,17 +43,20 @@
       "targets": [
         {
           "expr": "coordinador_actual_nodo_id_info",
-          "legendFormat": "Coordinador",
+          "legendFormat": "ID: {{nodo_id}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": {"mode": "fixed", "fixedColor": "blue"}
+          "color": {"mode": "fixed", "fixedColor": "blue"},
+          "mappings": [
+            {"options": {"pattern": ".*", "result": {"text": "Nodo ${__field.labels.nodo_id}"}}, "type": "regex"}
+          ]
         }
       },
-      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 0}
+      "gridPos": {"h": 6, "w": 3, "x": 3, "y": 0}
     },
     {
       "id": 3,
@@ -58,16 +64,16 @@
       "type": "stat",
       "targets": [
         {
-          "expr": "estado_glusterfs{job=\"cliente-flask\"}",
-          "legendFormat": "GlusterFS",
+          "expr": "estado_glusterfs",
+          "legendFormat": "Sistema Archivos",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            {"options": {"0": {"text": "Offline"}}, "type": "value"},
-            {"options": {"1": {"text": "Online"}}, "type": "value"}
+            {"options": {"0": {"text": "Offline", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "Online", "color": "green"}}, "type": "value"}
           ],
           "color": {"mode": "thresholds"},
           "thresholds": {
@@ -78,65 +84,12 @@
           }
         }
       },
-      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 0}
+      "gridPos": {"h": 6, "w": 3, "x": 6, "y": 0}
     },
     {
       "id": 4,
-      "title": "Throughput - Imágenes Subidas vs Procesadas",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "rate(total_imagenes_subidas_total{job=\"cliente-flask\"}[5m])",
-          "legendFormat": "Subidas",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(total_imagenes_procesadas_total{job=\"nodos-procesamiento\"}[5m]))",
-          "legendFormat": "Procesadas (Total)",
-          "refId": "B"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "ops",
-          "label": "Imágenes/segundo"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
-    },
-    {
-      "id": 5,
-      "title": "Latencia de Procesamiento - Comparativa",
-      "type": "graph",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_cliente_bucket[5m]))",
-          "legendFormat": "p50 - Cliente (Total)",
-          "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_cliente_bucket[5m]))",
-          "legendFormat": "p95 - Cliente (Total)",
-          "refId": "B"
-        },
-        {
-          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_nodo_bucket[5m]))",
-          "legendFormat": "p50 - Nodos (Individual)",
-          "refId": "C"
-        }
-      ],
-      "yAxes": [
-        {
-          "unit": "s",
-          "label": "Tiempo (segundos)"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14}
-    },
-    {
-      "id": 6,
-      "title": "Estado de Coordinadores",
-      "type": "graph",
+      "title": "Estado Coordinadores por Nodo",
+      "type": "stat",
       "targets": [
         {
           "expr": "es_coordinador",
@@ -144,56 +97,496 @@
           "refId": "A"
         }
       ],
-      "yAxes": [
-        {
-          "unit": "short",
-          "max": 1.2,
-          "min": -0.2
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "Worker", "color": "blue"}}, "type": "value"},
+            {"options": {"1": {"text": "COORD", "color": "green"}}, "type": "value"}
+          ],
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "steps": [
+              {"color": "blue", "value": 0},
+              {"color": "green", "value": 1}
+            ]
+          }
         }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22}
+      },
+      "gridPos": {"h": 6, "w": 3, "x": 9, "y": 0}
     },
     {
-      "id": 7,
-      "title": "Algoritmo Bully - Actividad",
+      "id": 5,
+      "title": "Throughput - Imágenes Procesadas",
       "type": "graph",
       "targets": [
         {
-          "expr": "increase(total_elecciones_bully_total[5m])",
-          "legendFormat": "Elecciones - {{resultado}}",
+          "expr": "rate(total_imagenes_subidas_total[5m])",
+          "legendFormat": "Subidas/seg",
           "refId": "A"
         },
         {
-          "expr": "increase(total_cambios_coordinador_total[5m])",
-          "legendFormat": "Cambios {{antiguo_c}}→{{nuevo_c}}",
+          "expr": "sum(rate(total_imagenes_procesadas_total[5m]))",
+          "legendFormat": "Procesadas Total/seg",
           "refId": "B"
+        },
+        {
+          "expr": "rate(total_imagenes_procesadas_total[5m])",
+          "legendFormat": "Nodo {{nodo_id}}/seg",
+          "refId": "C"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30}
+      "yAxes": [
+        {
+          "unit": "ops",
+          "label": "Imágenes por segundo"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": true,
+        "values": true,
+        "current": true,
+        "max": true,
+        "avg": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+    },
+    {
+      "id": 6,
+      "title": "Latencia de Procesamiento - Cliente vs Nodos",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p50 Cliente (E2E)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p95 Cliente (E2E)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p99 Cliente (E2E)",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_nodo_bucket[5m]))",
+          "legendFormat": "p50 Nodo {{nodo_id}}",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_nodo_bucket[5m]))",
+          "legendFormat": "p95 Nodo {{nodo_id}}",
+          "refId": "E"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "s",
+          "label": "Tiempo (segundos)",
+          "logBase": 2
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": true,
+        "values": true,
+        "current": true,
+        "max": true,
+        "avg": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+    },
+    {
+      "id": 7,
+      "title": "Latencia HTTP por Endpoint",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_peticiones_http_segundos_bucket[5m]))",
+          "legendFormat": "p50 {{metodo}} {{endpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_peticiones_http_segundos_bucket[5m]))",
+          "legendFormat": "p95 {{metodo}} {{endpoint}}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(duracion_peticiones_http_segundos_bucket[5m]))",
+          "legendFormat": "p99 {{metodo}} {{endpoint}}",
+          "refId": "C"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "s",
+          "label": "Tiempo de respuesta"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "max": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14}
     },
     {
       "id": 8,
+      "title": "Peticiones HTTP por Estado",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(total_peticiones_http_total[5m])",
+          "legendFormat": "{{codigo_estado}} {{metodo}} {{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "reqps",
+          "label": "Requests por segundo"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "total": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14}
+    },
+    {
+      "id": 9,
+      "title": "Algoritmo Bully - Elecciones y Cambios",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "increase(total_elecciones_bully_total[10m])",
+          "legendFormat": "Elecciones {{nodo_id}} - {{resultado}}",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(total_cambios_coordinador_total[10m])",
+          "legendFormat": "Cambio {{antiguo_c}}→{{nuevo_c}}",
+          "refId": "B"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "short",
+          "label": "Eventos en 10min",
+          "min": 0
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "total": true
+      },
+      "alert": {
+        "conditions": [
+          {
+            "evaluator": {"params": [5], "type": "gt"},
+            "operator": {"type": "and"},
+            "query": {"params": ["A", "5m", "now"]},
+            "reducer": {"params": [], "type": "sum"},
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "2m",
+        "frequency": "30s",
+        "handler": 1,
+        "name": "Demasiadas elecciones Bully",
+        "noDataState": "no_data",
+        "notifications": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22}
+    },
+    {
+      "id": 10,
       "title": "Tiempo de Búsqueda de Coordinador",
       "type": "graph",
       "targets": [
         {
           "expr": "histogram_quantile(0.50, rate(tiempo_busqueda_coordinador_segundos_bucket[5m]))",
-          "legendFormat": "p50",
+          "legendFormat": "p50 Búsqueda",
           "refId": "A"
         },
         {
           "expr": "histogram_quantile(0.95, rate(tiempo_busqueda_coordinador_segundos_bucket[5m]))",
-          "legendFormat": "p95",
+          "legendFormat": "p95 Búsqueda",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(tiempo_busqueda_coordinador_segundos_bucket[5m]))",
+          "legendFormat": "p99 Búsqueda",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(tiempo_busqueda_coordinador_segundos_count[5m])",
+          "legendFormat": "Búsquedas/seg",
+          "refId": "D"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "s",
+          "label": "Tiempo de búsqueda"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": true,
+        "values": true,
+        "current": true,
+        "max": true,
+        "avg": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22}
+    },
+    {
+      "id": 11,
+      "title": "Uso de CPU por Nodo",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "porcentaje_uso_cpu",
+          "legendFormat": "CPU Nodo {{nodo_id}}",
+          "refId": "A"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "percent",
+          "label": "% CPU",
+          "min": 0,
+          "max": 100
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "op": "gt",
+          "value": 80,
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "line": true,
+          "lineColor": "rgba(237, 46, 24, 0.60)"
+        },
+        {
+          "colorMode": "custom",
+          "op": "gt",
+          "value": 60,
+          "fill": true,
+          "fillColor": "rgba(255, 152, 48, 0.09)",
+          "line": true,
+          "lineColor": "rgba(255, 152, 48, 0.22)"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "max": true,
+        "avg": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30}
+    },
+    {
+      "id": 12,
+      "title": "Uso de Memoria por Nodo",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "porcentaje_uso_memoria",
+          "legendFormat": "RAM Nodo {{nodo_id}}",
+          "refId": "A"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "percent",
+          "label": "% Memoria",
+          "min": 0,
+          "max": 100
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "op": "gt",
+          "value": 85,
+          "fill": true,
+          "fillColor": "rgba(234, 112, 112, 0.12)",
+          "line": true,
+          "lineColor": "rgba(237, 46, 24, 0.60)"
+        },
+        {
+          "colorMode": "custom",
+          "op": "gt",
+          "value": 70,
+          "fill": true,
+          "fillColor": "rgba(255, 152, 48, 0.09)",
+          "line": true,
+          "lineColor": "rgba(255, 152, 48, 0.22)"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "max": true,
+        "avg": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30}
+    },
+    {
+      "id": 13,
+      "title": "Procesamiento por Tamaño de Imagen",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(total_imagenes_procesadas_total[5m])",
+          "legendFormat": "{{tamano_imagen}} - Nodo {{nodo_id}} ({{estado}})",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_nodo_bucket[5m]))",
+          "legendFormat": "p95 {{tamano_imagen}} - {{tipo_procesamiento}}",
+          "refId": "B"
+        }
+      ],
+      "yAxes": [
+        {
+          "unit": "ops",
+          "label": "Imágenes/seg y Latencia"
+        }
+      ],
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "max": true
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 38}
+    },
+    {
+      "id": 14,
+      "title": "Procesamiento Cliente por Tamaño (MB)",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p50 {{tamano_mb}}MB - {{tipo_procesamiento}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(duracion_procesamiento_cliente_bucket[5m]))",
+          "legendFormat": "p95 {{tamano_mb}}MB - {{tipo_procesamiento}}",
           "refId": "B"
         }
       ],
       "yAxes": [
         {
           "unit": "s",
-          "label": "Tiempo (segundos)"
+          "label": "Tiempo de procesamiento"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30}
+      "legend": {
+        "alignAsTable": true,
+        "rightSide": false,
+        "values": true,
+        "current": true,
+        "max": true
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 46}
+    },
+    {
+      "id": 15,
+      "title": "Estados de Procesamiento",
+      "type": "piechart",
+      "targets": [
+        {
+          "expr": "sum by (estado) (total_imagenes_subidas_total)",
+          "legendFormat": "Subidas: {{estado}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (estado, nodo_id) (total_imagenes_procesadas_total)",
+          "legendFormat": "Nodo {{nodo_id}}: {{estado}}",
+          "refId": "B"
+        }
+      ],
+      "legend": {
+        "displayMode": "table",
+        "placement": "right",
+        "values": ["value", "percent"]
+      },
+      "pieType": "donut",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 46}
+    },
+    {
+      "id": 16,
+      "title": "Resumen de Actividad del Sistema",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "nodos_activos",
+          "legendFormat": "Nodos Activos",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "sum(total_imagenes_subidas_total)",
+          "legendFormat": "Total Imágenes Subidas",
+          "refId": "B",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "sum(total_imagenes_procesadas_total)",
+          "legendFormat": "Total Imágenes Procesadas",
+          "refId": "C",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "sum(total_elecciones_bully_total)",
+          "legendFormat": "Total Elecciones Bully",
+          "refId": "D",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "sum(total_cambios_coordinador_total)",
+          "legendFormat": "Total Cambios Coordinador",
+          "refId": "E",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "Time"
+          }
+        }
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 54}
     }
   ],
   "time": {
@@ -201,5 +594,32 @@
     "to": "now"
   },
   "refresh": "5s",
-  "editable": true
+  "editable": true,
+  "style": "dark",
+  "templating": {
+    "list": [
+      {
+        "name": "nodo_id",
+        "type": "query",
+        "query": "label_values(porcentaje_uso_cpu, nodo_id)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Cambios Coordinador",
+        "datasource": "prometheus",
+        "expr": "changes(coordinador_actual_nodo_id_info[5m]) > 0",
+        "titleFormat": "Cambio de coordinador",
+        "textFormat": "Nuevo coordinador: {{nodo_id}}",
+        "iconColor": "rgb(255, 96, 96)",
+        "enable": true
+      }
+    ]
+  }
 }
