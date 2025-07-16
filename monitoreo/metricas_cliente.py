@@ -36,14 +36,6 @@ class RecolectorMetricas:
             registry=self.registro
         )
 
-        # Eficiencia de paralelización
-        self.speedup_paralelo = Gauge(
-            'speedup_paralelo',
-            'Factor de mejora vs procesamiento secuencial',
-            ['num_nodos'],
-            registry=self.registro
-        )
-
         self.duracion_procesamiento_cliente = Histogram(
             'duracion_procesamiento_cliente',
             'Tiempo de procesamiento de imagenes',
@@ -106,13 +98,6 @@ class RecolectorMetricas:
         """Registra imagen subida"""
         with self._lock:
             self.total_imagenes_subidas.labels(estado=estado).inc()
-
-    def track_speedup(self, tiempo_distribuido, tiempo_secuencial, num_nodos):
-        """Registra factor de mejora del procesamiento paralelo"""
-        if tiempo_distribuido > 0:
-            speedup = tiempo_secuencial / tiempo_distribuido
-            with self._lock:
-                self.speedup_paralelo.labels(num_nodos=str(num_nodos)).set(speedup)
 
     def track_procesamiento_imagen(self, duracion, tamano_mb, tipo_procesamiento = "escala grises"):
         """Finaliza tracking de procesamiento de imagen"""
