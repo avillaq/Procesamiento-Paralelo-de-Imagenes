@@ -23,8 +23,8 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        self.duracion_procesamiento = Histogram(
-            'duracion_procesamiento',
+        self.duracion_procesamiento_nodo = Histogram(
+            'duracion_procesamiento_nodo',
             'Tiempo de procesamiento de imagenes',
             ['nodo_id', 'tamano_imagen', 'tipo_procesamiento'],
             registry=self.registro,
@@ -43,13 +43,6 @@ class RecolectorMetricas:
             'total_cambios_coordinador',
             'Total de cambios de coordinador',
             ['antiguo_c', 'nuevo_c'],
-            registry=self.registro
-        )
-
-        self.es_coordinador = Gauge(
-            'es_coordinador',
-            'Indica si este nodo es el coordinador (1=si, 0=no)',
-            ['nodo_id'],
             registry=self.registro
         )
         
@@ -119,7 +112,7 @@ class RecolectorMetricas:
                 tamano_imagen=tamano_imagen
             ).inc()
             
-            self.duracion_procesamiento.labels(
+            self.duracion_procesamiento_nodo.labels(
                 nodo_id=str(self.nodo_id),
                 tamano_imagen=tamano_imagen,
                 tipo_procesamiento=tipo_procesamiento
@@ -133,13 +126,6 @@ class RecolectorMetricas:
                 nodo_id=str(self.nodo_id),
                 resultado=resultado
             ).inc()
-
-    def actualizar_coordinador(self, es_coordinador=False):
-        """Actualiza información del coordinador"""
-        with self._lock:
-            self.es_coordinador.labels(nodo_id=str(self.nodo_id)).set(
-                1 if es_coordinador else 0
-            )
 
     def actualizar_nodos_activos(self, cantidad):
         """Actualiza cantidad de nodos activos"""
