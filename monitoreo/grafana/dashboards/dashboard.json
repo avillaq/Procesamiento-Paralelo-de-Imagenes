@@ -536,57 +536,6 @@
       },
       "pieType": "donut",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 46}
-    },
-    {
-      "id": 16,
-      "title": "Resumen de Actividad del Sistema",
-      "type": "table",
-      "targets": [
-        {
-          "expr": "nodos_activos",
-          "legendFormat": "Nodos Activos",
-          "refId": "A",
-          "format": "table",
-          "instant": true
-        },
-        {
-          "expr": "sum(total_imagenes_subidas_total)",
-          "legendFormat": "Total Imágenes Subidas",
-          "refId": "B",
-          "format": "table",
-          "instant": true
-        },
-        {
-          "expr": "sum(total_imagenes_procesadas_total)",
-          "legendFormat": "Total Imágenes Procesadas",
-          "refId": "C",
-          "format": "table",
-          "instant": true
-        },
-        {
-          "expr": "sum(total_elecciones_bully_total)",
-          "legendFormat": "Total Elecciones Bully",
-          "refId": "D",
-          "format": "table",
-          "instant": true
-        },
-        {
-          "expr": "sum(total_cambios_coordinador_total)",
-          "legendFormat": "Total Cambios Coordinador",
-          "refId": "E",
-          "format": "table",
-          "instant": true
-        }
-      ],
-      "transformations": [
-        {
-          "id": "seriesToColumns",
-          "options": {
-            "byField": "Time"
-          }
-        }
-      ],
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 54}
     }
   ],
   "time": {
