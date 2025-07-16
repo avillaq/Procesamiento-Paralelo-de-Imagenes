@@ -44,8 +44,8 @@ class RecolectorMetricas:
             registry=self.registro
         )
 
-        self.duracion_procesamiento = Histogram(
-            'duracion_procesamiento',
+        self.duracion_procesamiento_cliente = Histogram(
+            'duracion_procesamiento_cliente',
             'Tiempo de procesamiento de imagenes',
             ['tamano_mb', 'tipo_procesamiento'],
             buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
@@ -117,7 +117,7 @@ class RecolectorMetricas:
     def track_procesamiento_imagen(self, duracion, tamano_mb, tipo_procesamiento = "escala grises"):
         """Finaliza tracking de procesamiento de imagen"""
         with self._lock:           
-            self.duracion_procesamiento.labels(
+            self.duracion_procesamiento_cliente.labels(
                 tamano_mb=tamano_mb,
                 tipo_procesamiento=tipo_procesamiento
             ).observe(duracion)
