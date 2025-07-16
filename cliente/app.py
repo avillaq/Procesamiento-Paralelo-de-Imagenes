@@ -351,7 +351,6 @@ def archivos_subidos(nombre_archivo):
 def archivos_procesados(nombre_archivo):
     return send_from_directory(CARPETA_PROCESADOS, nombre_archivo)
 
-@app.before_first_request
 def inicializar_metricas():
     """Inicializa métricas al inicio de la aplicación"""
     if gfs:
@@ -382,4 +381,5 @@ def cleanup():
 atexit.register(cleanup)
 
 if __name__ == "__main__":
+    inicializar_metricas()
     app.run(host="0.0.0.0", port=8080, debug=True, use_reloader=False)
