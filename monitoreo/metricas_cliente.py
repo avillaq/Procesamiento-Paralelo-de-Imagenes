@@ -36,6 +36,14 @@ class RecolectorMetricas:
             registry=self.registro
         )
 
+        # Eficiencia de paralelización
+        self.speedup_paralelo = Gauge(
+            'speedup_paralelo',
+            'Factor de mejora vs procesamiento secuencial',
+            ['num_nodos'],
+            registry=self.registro
+        )
+
         self.duracion_procesamiento = Histogram(
             'duracion_procesamiento',
             'Tiempo de procesamiento de imagenes',
@@ -43,7 +51,6 @@ class RecolectorMetricas:
             buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
             registry=self.registro,
         )
-        
         
         # métricas de GlusterFS     
         self.estado_glusterfs = Gauge(
@@ -99,6 +106,13 @@ class RecolectorMetricas:
         """Registra imagen subida"""
         with self._lock:
             self.total_imagenes_subidas.labels(estado=estado).inc()
+
+    def track_speedup(self, tiempo_distribuido, tiempo_secuencial, num_nodos):
+        """Registra factor de mejora del procesamiento paralelo"""
+        if tiempo_distribuido > 0:
+            speedup = tiempo_secuencial / tiempo_distribuido
+            with self._lock:
+                self.speedup_paralelo.labels(num_nodos=str(num_nodos)).set(speedup)
 
     def track_procesamiento_imagen(self, duracion, tamano_mb, tipo_procesamiento = "escala grises"):
         """Finaliza tracking de procesamiento de imagen"""
