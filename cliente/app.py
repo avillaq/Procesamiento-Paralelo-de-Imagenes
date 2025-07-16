@@ -90,7 +90,7 @@ def categorizar_tamano_mb(tamano_mb):
 
 def get_url_base(request):
     if 'localhost' in request.host or '127.0.0.1' in request.host:
-        return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
+        return f"http://localhost:8080"
     else:
         return f"https://super-duper-spoon-gwppvv75j45c94wg-8080.app.github.dev"
     
