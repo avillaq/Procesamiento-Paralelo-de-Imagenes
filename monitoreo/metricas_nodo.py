@@ -53,22 +53,6 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
-        # métricas de gRPC
-        self.total_peticiones_grpc = Counter(
-            'total_peticiones_grpc',
-            'Total de peticiones gRPC',
-            ['nodo_id', 'metodo', 'estado'],
-            registry=self.registro
-        )
-        
-        self.duracion_peticion_grpc = Histogram(
-            'duracion_peticion_grpc',
-            'Duración de peticiones gRPC',
-            ['nodo_id', 'metodo'],
-            buckets=[1.0, 2.5, 5.0, 7.0, 10.0],
-            registry=self.registro
-        )
-        
         # métricas de nodos
         self.nodos_activos = Gauge(
             'nodos_activos',
@@ -169,21 +153,6 @@ class RecolectorMetricas:
                 antiguo_c=str(antiguo_c),
                 nuevo_c=str(nuevo_c)
             ).inc()
-    
-    # Metodos para gRPC
-    def track_peticion_grpc(self, metodo, duracion, estado = "exito"):
-        """Finaliza tracking de peticion gRPC"""        
-        with self._lock:
-            self.total_peticiones_grpc.labels(
-                nodo_id=str(self.nodo_id),
-                metodo=metodo,
-                estado=estado
-            ).inc()
-            
-            self.duracion_peticion_grpc.labels(
-                nodo_id=str(self.nodo_id),
-                metodo=metodo
-            ).observe(duracion)
 
     def stop_monitoring(self):
         """Detiene el monitoreo"""

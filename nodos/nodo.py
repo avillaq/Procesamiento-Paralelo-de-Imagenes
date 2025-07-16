@@ -27,23 +27,8 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
     # implementacion
     def EstadoNodo(self, request, context):
         """Retorna el estado del nodo"""
-        inicio = time.time()
-
-        try:
-            es_coordinador = self.bully_service.es_coordinador
-            self.recolector_metricas_nodo.track_peticion_grpc(
-                "EstadoNodo", 
-                time.time() - inicio, 
-                "exito"
-            )
-            return procesador_pb2.EstadoReply(es_coordinador=es_coordinador, nodo_id=self.nodo_id)
-        except Exception as e:
-            self.recolector_metricas_nodo.track_peticion_grpc(
-                "EstadoNodo", 
-                time.time() - inicio, 
-                "error"
-            )
-            raise
+        es_coordinador = self.bully_service.es_coordinador
+        return procesador_pb2.EstadoReply(es_coordinador=es_coordinador, nodo_id=self.nodo_id)
 
     def ProcesarImagen(self, request, context):
         """Punto de entrada principal"""
@@ -64,9 +49,6 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
             self.recolector_metricas_nodo.track_procesamiento_imagen(
                 duracion, estado, tamano_imagen, "escala grises"
             )
-            self.recolector_metricas_nodo.track_peticion_grpc(
-                "ProcesarImagen", duracion, estado
-            )
             
             return resultado
         
@@ -74,10 +56,6 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
             duracion = time.time() - inicio
             self.recolector_metricas_nodo.track_procesamiento_imagen(
                 duracion, "error", "desconocido", "escala grises"
-            )
-            
-            self.recolector_metricas_nodo.track_peticion_grpc(
-                "ProcesarImagen", duracion, "error"
             )
 
             logger.error(f"Error en nodo {self.nodo_id}: {e}")
