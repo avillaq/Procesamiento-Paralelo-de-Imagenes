@@ -1,3 +1,4 @@
+import random
 import threading
 import time
 import grpc
@@ -182,6 +183,8 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
 
     def _monitor_coordinador(self):
         """Monitorea coordinador actual"""
+        delay_inicial = random.uniform(0, self.intervalo_heartbeat)
+        time.sleep(delay_inicial)
         while self.running:
             time.sleep(self.intervalo_heartbeat)
 
