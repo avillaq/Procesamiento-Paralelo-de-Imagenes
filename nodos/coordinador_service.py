@@ -1,16 +1,18 @@
 import logging
 import numpy as np
 import cv2
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from proto import procesador_pb2
 
 logger = logging.getLogger(__name__)
 
 class CoordinadorService:
-    def __init__(self, nodo_id, bully_service, imagen_helper):
+    def __init__(self, nodo_id, bully_service, imagen_helper, recolector_metricas_nodo=None):
         self.nodo_id = nodo_id
         self.bully_service = bully_service
         self.imagen_helper = imagen_helper
+        self.recolector_metricas = recolector_metricas_nodo
 
     def procesar_imagen_distribuida(self, imagen_data):
         """Distribuye imagen a nodos disponibles"""
@@ -112,7 +114,6 @@ class CoordinadorService:
         for intento in range(max_intentos):
             for otro in nodos_disponibles:
                 if otro != nodo_objetivo:
-                    logger.warning(f"Reintentando parte en nodo {otro} (intento {intento + 1})")
                     resultado = self.imagen_helper.enviar_parte_a_nodo(parte, otro)
                     if resultado is not None:
                         return resultado

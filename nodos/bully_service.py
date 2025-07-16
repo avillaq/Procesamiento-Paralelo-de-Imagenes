@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BullyService(bully_pb2_grpc.BullyServiceServicer):
-    def __init__(self, nodo_id, lista_nodos):
+    def __init__(self, nodo_id, lista_nodos, recolector_metricas_nodo=None):
         self.nodo_id = nodo_id
         self.lista_nodos = lista_nodos  # ["nodo1:50053", "nodo2:50053"]
         self.coordinador_actual = None
@@ -18,6 +18,7 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
         self.eleccion_en_proceso = False
         self.intervalo_heartbeat = 5.0  #segundos
         self.timeout_eleccion = 3.0 
+        self.recolector_metricas = recolector_metricas_nodo
         
         self.lock = threading.RLock() #mutex
         
@@ -32,6 +33,7 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
 
         # se inicia monitor de coordinador
         threading.Thread(target=self._monitor_coordinador, daemon=True).start()
+        threading.Thread(target=self._monitor_nodos_activos, daemon=True).start()
 
     def _iniciar_eleccion_inicial(self):
         if self.coordinador_actual is None:
@@ -79,10 +81,21 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
     def Coordinador(self, request, context):
         """Recibe anuncio de nuevo coordinador"""
         with self.lock:
+            antiguo_coordinador = self.coordinador_actual
+            
             logger.info(f"Nodo {self.nodo_id}: Nuevo coordinador anunciado: {request.coordinador_id}")
             self.coordinador_actual = request.coordinador_id
             self.es_coordinador = (request.coordinador_id == self.nodo_id)
             self.eleccion_en_proceso = False
+            
+            #Cambio de coordinador
+            if self.recolector_metricas and antiguo_coordinador != request.coordinador_id:
+                self.recolector_metricas.track_cambio_coordinador(
+                    antiguo_coordinador or 0, 
+                    request.coordinador_id
+                )
+                self.recolector_metricas.actualizar_es_coordinador(self.es_coordinador)
+            
             return bully_pb2.CoordinadorReply(status="ok")
 
     def Heartbeat(self, request, context):
@@ -98,6 +111,10 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
                 
             self.eleccion_en_proceso = True
             logger.info(f"Nodo {self.nodo_id}: Iniciando eleccion")
+
+        # elección iniciada
+        if self.recolector_metricas:
+            self.recolector_metricas.track_eleccion_bully("iniciada")
 
         # se envian mensajes a los nodos con mayor ID
         nodos_mayores = [nodo for nodo in self.lista_nodos if self._get_nodo_id(nodo) > self.nodo_id]
@@ -124,14 +141,31 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
             with self.lock:
                 if self.eleccion_en_proceso:
                     self._convertirse_coordinador()
+                    
+                    # elección ganada
+                    if self.recolector_metricas:
+                        self.recolector_metricas.track_eleccion_bully("ganada")
+        else:
+            # elección perdida
+            if self.recolector_metricas:
+                self.recolector_metricas.track_eleccion_bully("perdida")
 
     def _convertirse_coordinador(self):
         """Se convierte en coordinador"""
         logger.info(f"Nodo {self.nodo_id}: Convirtiéndose en coordinador")
         
+        antiguo_coordinador = self.coordinador_actual
         self.coordinador_actual = self.nodo_id
         self.es_coordinador = True
         self.eleccion_en_proceso = False
+        
+        # Nuevo coordinador
+        if self.recolector_metricas:
+            self.recolector_metricas.track_cambio_coordinador(
+                antiguo_coordinador or 0, 
+                self.nodo_id
+            )
+            self.recolector_metricas.actualizar_es_coordinador(True)
         
         for direccion in self.lista_nodos:
             if self._get_nodo_id(direccion) != self.nodo_id:
@@ -162,7 +196,27 @@ class BullyService(bully_pb2_grpc.BullyServiceServicer):
                 with self.lock:
                     if self.coordinador_actual == coordinador_a_revisar:
                         self.coordinador_actual = None
+
+                        # Coordinador caído
+                        if self.recolector_metricas:
+                            self.recolector_metricas.track_eleccion_bully("coordinador_caido")
+                            
                 threading.Thread(target=self._iniciar_eleccion, daemon=True).start()
+
+    def _monitor_nodos_activos(self):
+        """Monitorea cantidad de nodos activos periódicamente"""
+        while self.running:
+            try:
+                nodos_activos = len(self.get_nodos_disponibles()) + 1  # +1 por este nodo
+                
+                # Actualizar nodos activos
+                if self.recolector_metricas:
+                    self.recolector_metricas.actualizar_nodos_activos(nodos_activos)
+                
+                time.sleep(10)
+            except Exception as e:
+                logger.error(f"Error monitoreando nodos activos: {e}")
+                time.sleep(15)
 
     def _verificar_coordinador_alive(self):
         """Verifica si el coordinador actual está vivo"""

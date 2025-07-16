@@ -28,6 +28,7 @@ class ProcesadorImagen(procesador_pb2_grpc.ProcesadorImagenServicer):
     def EstadoNodo(self, request, context):
         """Retorna el estado del nodo"""
         es_coordinador = self.bully_service.es_coordinador
+        self.recolector_metricas_nodo.actualizar_es_coordinador(es_coordinador)
         return procesador_pb2.EstadoReply(es_coordinador=es_coordinador, nodo_id=self.nodo_id)
 
     def ProcesarImagen(self, request, context):
@@ -86,9 +87,9 @@ def serve():
     recolector_metricas_nodo = metricas_nodo_server.get_recolector()
 
     # servicios
-    bully_service = BullyService(nodo_id, nodos_conocidos)
+    bully_service = BullyService(nodo_id, nodos_conocidos, recolector_metricas_nodo)
     imagen_helper = ImagenHelper(nodo_id)
-    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper)
+    coordinador_service = CoordinadorService(nodo_id, bully_service, imagen_helper, recolector_metricas_nodo)
 
     # servicio principal
     procesador = ProcesadorImagen(nodo_id, bully_service, coordinador_service, imagen_helper, recolector_metricas_nodo)

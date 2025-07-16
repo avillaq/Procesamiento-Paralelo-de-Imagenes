@@ -46,6 +46,13 @@ class RecolectorMetricas:
             registry=self.registro
         )
         
+        self.es_coordinador = Gauge(
+            'es_coordinador',
+            'Indica si este nodo es el coordinador (1=si, 0=no)',
+            ['nodo_id'],
+            registry=self.registro
+        )
+        
         # métricas de nodos
         self.nodos_activos = Gauge(
             'nodos_activos',
@@ -71,7 +78,7 @@ class RecolectorMetricas:
         self._configurar_info()
         self._lock = threading.RLock()
 
-        # Iniciar metricas
+        # Iniciar monitoreo
         self._monitoring_thread = threading.Thread(target=self._monitor_sistema, daemon=True)
         self._monitoring_running = True
         self._monitoring_thread.start()
@@ -101,9 +108,8 @@ class RecolectorMetricas:
             except Exception as e:
                 logger.error(f"Error monitoreando sistema en nodo {self.nodo_id}: {e}")
                 time.sleep(10)
-    
-    # Metodos para tracking de imagenes
-    def track_procesamiento_imagen(self, duracion, estado = "exito", tamano_imagen = "mediana", tipo_procesamiento = "escala grises"):
+        
+    def track_procesamiento_imagen(self, duracion, estado="exito", tamano_imagen="mediana", tipo_procesamiento="escala grises"):
         """Finaliza tracking de procesamiento de imagen"""
         with self._lock:
             self.total_imagenes_procesadas.labels(
@@ -126,6 +132,13 @@ class RecolectorMetricas:
                 nodo_id=str(self.nodo_id),
                 resultado=resultado
             ).inc()
+
+    def actualizar_es_coordinador(self, es_coordinador_flag):
+        """Actualiza si este nodo es coordinador"""
+        with self._lock:
+            self.es_coordinador.labels(nodo_id=str(self.nodo_id)).set(
+                1 if es_coordinador_flag else 0
+            )
 
     def actualizar_nodos_activos(self, cantidad):
         """Actualiza cantidad de nodos activos"""
